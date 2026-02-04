@@ -1,0 +1,9 @@
+[project]
+name = "brcrawl"
+version = "0.1.0"
+description = "Crawler and indexer of br blogs!"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "scrapy>=2.14.1",
+]
