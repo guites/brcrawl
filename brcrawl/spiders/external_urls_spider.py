@@ -31,10 +31,10 @@ class ExternalUrlsSpider(SitemapSpider):
     def parse(self, response):
         self.log(f"Scrapping URL {response.url}")
         parsed_url = urlparse(response.url)
-        
+
         domain = parsed_url.netloc
         path = parsed_url.path
-        
+
         link_extractor = LinkExtractor(unique=True, deny_domains=[domain])
         links = link_extractor.extract_links(response)
         yield {

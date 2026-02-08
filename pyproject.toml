@@ -5,5 +5,6 @@ description = "Crawler and indexer of br blogs!"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "scrapy>=2.14.1",
 ]
