@@ -3,6 +3,7 @@
 
 import json
 import sys
+from urllib.parse import urlparse
 
 
 def parse_urls(jsonl_path: str):
@@ -17,12 +18,13 @@ def parse_urls(jsonl_path: str):
                 yield url.rstrip("/")
 
 
-def unique(urls):
-    """Yield only the first occurrence of each URL."""
+def unique_by_domain(urls):
+    """Yield only the first URL seen for each domain."""
     seen: set[str] = set()
     for url in urls:
-        if url not in seen:
-            seen.add(url)
+        domain = urlparse(url).netloc
+        if domain not in seen:
+            seen.add(domain)
             yield url
 
 
@@ -31,7 +33,7 @@ def main():
         print(f"Usage: {sys.argv[0]} <input.jsonl>", file=sys.stderr)
         sys.exit(1)
 
-    for url in unique(parse_urls(sys.argv[1])):
+    for url in unique_by_domain(parse_urls(sys.argv[1])):
         print(url)
 
 
