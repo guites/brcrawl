@@ -14,7 +14,25 @@ With `uv` installed:
 uv sync
 ```
 
+## Usage
+
+The pipeline is described at `brcrawl.sh`.
+
+In order to run the script you will need two files:
+
+- urls.txt: list of initial blogs for crawling. One blog URL per line.
+- blocklist.txt: list of domains that you want to exclude from the pipeline. One domain per line.
+
+There are two example files that you can use as a starting point:
+
+```
+cp example.urls.txt urls.txt
+cp example.blocklist.txt blocklist.txt
+```
+
 ## BearblogDiscoverSpider
+
+**This is not part of the pipeline, but was used to generate the starting `urls.txt` for the project.**
 
 Crawls the bearblog discovery feed filtering by &newest=true with a lang=pt cookie.
 

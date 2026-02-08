@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [[ ! -f "urls.txt" || ! -f "blocklist.txt" ]]; then
+    echo "Please create the urls.txt and blocklist.txt files"
+    echo "See README.md for instructions"
+    exit 1
+fi
+
 # 1. Gets all external URLs mentioned on existing blog posts
 uv run scrapy crawl external_urls -a urls_file=urls.txt -o external_urls.jsonl
 
