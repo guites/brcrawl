@@ -4,6 +4,7 @@
 import argparse
 import json
 import math
+import re
 import secrets
 import sys
 from datetime import datetime, timezone
@@ -103,7 +104,6 @@ nav {
     justify-content: center;
     gap: 1em;
     padding: 1em 0;
-    border-top: 1px solid var(--border);
     margin-top: 1em;
 }
 
@@ -137,8 +137,14 @@ def render_items_html(items: list[dict], start_index: int) -> str:
         lines.append("\t\t\t\t</a>")
         lines.append("\t\t\t\t<br>")
         lines.append("\t\t\t\t<small>")
+        pub_display = publication
+        try:
+            pub_date = datetime.strptime(publication, "%Y-%m-%d")
+            pub_display = pub_date.strftime("%d/%m/%Y")
+        except ValueError:
+            pass
         lines.append(
-            f'\t\t\t\t\t<time datetime="{publication}">{publication}</time>'
+            f'\t\t\t\t\t<time datetime="{publication}">{pub_display}</time>'
         )
         lines.append("\t\t\t\t\t|")
         lines.append(
@@ -174,23 +180,17 @@ def render_nav(current_page: int, total_pages: int) -> str:
     return "\n".join(parts)
 
 
-def render_page(
-    items: list[dict],
-    page_num: int,
-    total_pages: int,
-    start_index: int,
+def render_page_skeleton(
     name: str,
     description: str,
+    main_html: str,
 ) -> str:
-    """Render a full HTML page."""
+    """Render the common HTML skeleton shared by all pages."""
     nonce = secrets.token_hex(16)
     now = datetime.now(timezone.utc)
     day = now.strftime("%A")
-    dt_display = now.strftime("%Y-%m-%d %H:%M:%S")
+    dt_display = now.strftime("%d/%m/%Y %H:%M:%S")
     dt_rfc3339 = now.isoformat()
-
-    items_html = render_items_html(items, start_index)
-    nav_html = render_nav(page_num, total_pages)
 
     return f"""\
 <!DOCTYPE html>
@@ -224,15 +224,15 @@ def render_page(
 \t\t{escape(description)}
 \t</header>
 \t<main>
-{items_html}
-{nav_html}
+{main_html}
 \t</main>
 \t<footer>
-\t\t<p>Last Updated On:
+\t\t<p>Atualizado em:
 \t\t\t<time id="update-at" datetime="{dt_rfc3339}">
 \t\t\t\t{day}, {dt_display}
 \t\t\t</time>
 \t\t</p>
+\t\t<p><a href="about.html">Sobre</a> | <a href="sources.html">Fontes</a></p>
 \t</footer>
 </body>
 
@@ -247,6 +247,88 @@ def render_page(
 
 </html>
 """
+
+
+def render_page(
+    items: list[dict],
+    page_num: int,
+    total_pages: int,
+    start_index: int,
+    name: str,
+    description: str,
+) -> str:
+    """Render a full HTML page."""
+    items_html = render_items_html(items, start_index)
+    nav_html = render_nav(page_num, total_pages)
+    main_html = f"{items_html}\n{nav_html}" if nav_html else items_html
+    return render_page_skeleton(name, description, main_html)
+
+
+_WARNING_RE = re.compile(
+    r"^WARNING: fail to parse feed at (https?://\S+?):\s+(.+)$"
+)
+
+
+def parse_warnings(warnings_path: Path) -> dict[str, str]:
+    """Parse a tinyfeed warnings log and return {url: error_description}."""
+    failed: dict[str, str] = {}
+    for line in warnings_path.read_text().splitlines():
+        m = _WARNING_RE.match(line.strip())
+        if m:
+            failed[m.group(1)] = m.group(2)
+    return failed
+
+
+def render_sources_page(
+    feed_urls: list[str],
+    name: str,
+    description: str,
+    failed: dict[str, str] | None = None,
+) -> str:
+    """Render the sources.html page listing successful and failed feed URLs."""
+    if failed is None:
+        failed = {}
+
+    failed_urls = set(failed.keys())
+    ok_urls = [u for u in feed_urls if u not in failed_urls]
+
+    lines: list[str] = []
+
+    # Successful sources
+    lines.append(f"\t\t<h2>Ativos ({len(ok_urls)})</h2>")
+    lines.append("\t\t<ol>")
+    for url in ok_urls:
+        escaped_url = escape(url, quote=True)
+        lines.append(
+            f'\t\t\t<li><a href="{escaped_url}" target="_blank">{escaped_url}</a></li>'
+        )
+    lines.append("\t\t</ol>")
+
+    # Failed sources
+    if failed:
+        lines.append(f"\t\t<h2>Inativos ({len(failed)})</h2>")
+        lines.append("\t\t<ol>")
+        for url, error in sorted(failed.items()):
+            escaped_url = escape(url, quote=True)
+            escaped_error = escape(error)
+            lines.append(
+                f'\t\t\t<li><a href="{escaped_url}" target="_blank">{escaped_url}</a>'
+                f"<br><small>{escaped_error}</small></li>"
+            )
+        lines.append("\t\t</ol>")
+
+    main_html = "\n".join(lines)
+    return render_page_skeleton(f"Fontes | {name}", description, main_html)
+
+
+def render_about_page(
+    about_html: str,
+    name: str,
+    description: str,
+) -> str:
+    """Render the about.html page from raw HTML content."""
+    main_html = f"\t\t{about_html}"
+    return render_page_skeleton(f"Sobre | {name}", description, main_html)
 
 
 def main() -> None:
@@ -268,6 +350,24 @@ def main() -> None:
         "--description",
         default="Diretório da smallweb brasileira",
         help="Page description",
+    )
+    parser.add_argument(
+        "-s",
+        "--sources",
+        default=None,
+        help="Path to feeds.txt file listing feed URLs (one per line) for sources.html",
+    )
+    parser.add_argument(
+        "-a",
+        "--about",
+        default=None,
+        help="Path to about.txt file containing raw HTML content for about.html",
+    )
+    parser.add_argument(
+        "-w",
+        "--warnings",
+        default=None,
+        help="Path to tinyfeed warnings log for failed feed detection",
     )
     args = parser.parse_args()
 
@@ -305,6 +405,45 @@ def main() -> None:
         out_path = output_dir / page_filename(page_num)
         out_path.write_text(html)
         print(f"Generated {out_path} ({len(page_items)} items)")
+
+    failed: dict[str, str] = {}
+    if args.warnings:
+        warnings_path = Path(args.warnings)
+        if warnings_path.exists():
+            failed = parse_warnings(warnings_path)
+            if failed:
+                print(f"Detected {len(failed)} failed feed(s) from warnings log")
+
+    if args.sources:
+        sources_path = Path(args.sources)
+        if not sources_path.exists():
+            print(f"Error: sources file not found: {sources_path}", file=sys.stderr)
+            sys.exit(1)
+        feed_urls = [
+            line.strip()
+            for line in sources_path.read_text().splitlines()
+            if line.strip()
+        ]
+        sources_html = render_sources_page(
+            feed_urls, args.name, args.description, failed
+        )
+        sources_out = output_dir / "sources.html"
+        sources_out.write_text(sources_html)
+        ok_count = len(feed_urls) - len(set(feed_urls) & set(failed))
+        print(
+            f"Generated {sources_out} ({ok_count} active, {len(failed)} unreachable)"
+        )
+
+    if args.about:
+        about_path = Path(args.about)
+        if not about_path.exists():
+            print(f"Error: about file not found: {about_path}", file=sys.stderr)
+            sys.exit(1)
+        about_content = about_path.read_text()
+        about_html = render_about_page(about_content, args.name, args.description)
+        about_out = output_dir / "about.html"
+        about_out.write_text(about_html)
+        print(f"Generated {about_out}")
 
     print(f"Done: {total_pages} page(s), {len(items)} items total")
 
