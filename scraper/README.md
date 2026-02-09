@@ -1,6 +1,6 @@
-# BR Crawl
+# Scraper | BR Crawl
 
-This projects aims to crawl and index existing indieweb/smallweb adjacent blogs by brazilian authors.
+Crawl and index existing indieweb/smallweb blogs by brazilian authors.
 
 It is composed of different crawlers, each with a separate objective.
 
