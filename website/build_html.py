@@ -232,7 +232,7 @@ def render_page_skeleton(
 \t\t\t\t{day}, {dt_display}
 \t\t\t</time>
 \t\t</p>
-\t\t<p><a href="about.html">Sobre</a> | <a href="sources.html">Fontes</a></p>
+\t\t<p><a href="index.html">BR Crawl</a> | <a href="about.html">Sobre</a> | <a href="sources.html">Fontes</a></p>
 \t</footer>
 </body>
 
