@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e # exit on error
+set -u # error on undefined variables
 
 # Builds the html files for publishing brcrawl as a static website
 
