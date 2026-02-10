@@ -13,6 +13,63 @@ from pathlib import Path
 
 ITEMS_PER_PAGE = 50
 
+JS = """\
+
+    function feedback(domain) {
+        return `<div><small>Domínio <a href="https://${domain}">${domain}</a> reportado. | <button class="unreport">desfazer</button></small></div>`;
+    }
+
+    var reported = localStorage.getItem('has_reported') || '[]';
+    let domains = Array.from(document.getElementsByClassName("domain"));
+    reported = JSON.parse(reported);
+    domains.forEach((domain) => {
+       if (reported.includes(domain.textContent)) {
+            domain.closest("li").innerHTML = feedback(domain.textContent);
+       }
+    });
+
+    function unreport(btn) {
+        const li = btn.closest("li");
+        const articleDomain = li.querySelector("a");
+        const domain = articleDomain.textContent;
+        reported = reported.filter((d) => d != domain);
+        localStorage.setItem('has_reported', JSON.stringify(reported));
+        window.location.reload();
+    }
+
+    function report(btn) {
+        const li = btn.closest("li");
+        const articleDomain = li.querySelector("a.domain");
+        const domain = articleDomain.textContent;
+
+        if (reported.length == 0) {
+            const agreed = confirm("Reporte sites que não são blogs pessoais ou não estão em português. Confirme para não ver mais essa mensagem. Obrigado!");
+            if (!agreed) {
+                return;
+            }
+        }
+        fetch("https://remote_url.com/report", {
+            method: "POST",
+            body: JSON.stringify({ domain })
+        });
+        reported.push(domain);
+        localStorage.setItem('has_reported', JSON.stringify(reported));
+        li.innerHTML = feedback(domain);
+    }
+
+    document.addEventListener("click", function(e) {
+        if (e.target.className == "report") {
+            return report(e.target);
+        }
+        if (e.target.className == "unreport") {
+            return unreport(e.target);
+        }
+    });
+    document.querySelectorAll("button.report").forEach(btn => {
+        btn.addEventListener("click", report);
+    });
+"""
+
 CSS = """\
 :root {
     color-scheme: dark light;
@@ -113,6 +170,22 @@ nav > a, nav > span {
 
 nav > span {
     color: var(--border);
+}
+
+button.report, button.unreport {
+    background: transparent;
+    border: 0px transparent;
+    padding: 0px;
+    margin: 0px;
+    display: inline;
+    box-sizing: border-box;
+    font: inherit;
+    color: inherit;
+}
+
+button.report:hover, button.unreport {
+    opacity: 0.8;
+    cursor: pointer;
 }"""
 
 
@@ -148,7 +221,10 @@ def render_items_html(items: list[dict], start_index: int) -> str:
         )
         lines.append("\t\t\t\t\t|")
         lines.append(
-            f'\t\t\t\t\t<a href="https://{domain}" target="_blank">{domain}</a>'
+            f'\t\t\t\t\t<a class="domain" href="https://{domain}" target="_blank">{domain}</a> | '
+        )
+        lines.append(
+            f'\t\t\t\t\t<button class="report">reportar</button>'
         )
         lines.append("\t\t\t\t</small>")
         lines.append("\t\t\t</li>")
@@ -243,6 +319,9 @@ def render_page_skeleton(
 \t\tdateStyle: "full",
 \t\ttimeStyle: "medium",
 \t}})
+</script>
+<script type="module" nonce="{nonce}">
+{JS}
 </script>
 
 </html>
