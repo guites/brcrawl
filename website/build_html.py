@@ -224,7 +224,7 @@ button.report, button.unreport, button.hide, button.show {
     color: inherit;
 }
 
-button.report:hover, button.unreport, button.hide, button.show {
+button.report:hover, button.unreport, button.hide:hover, button.show {
     opacity: 0.8;
     cursor: pointer;
 }"""
