@@ -15,27 +15,32 @@ ITEMS_PER_PAGE = 50
 
 JS = """\
 
-    function feedback(domain) {
-        return `<div><small>Domínio <a href="https://${domain}">${domain}</a> reportado. | <button class="unreport">desfazer</button></small></div>`;
+    function hide_feedback(domain) {
+        return `<div><small>Domínio <a href="https://${domain}">${domain}</a> escondido. | <button class="show">exibir</button></small></div>`;
     }
 
-    var reported = localStorage.getItem('has_reported') || '[]';
-    let domains = Array.from(document.getElementsByClassName("domain"));
+    function report_feedback(li) {
+        li.style.opacity = 0.5;
+        const btn = li.querySelector("button.report");
+        btn.textContent = "reportado";
+        btn.className = "unreport";
+    }
+
+    var reported = localStorage.getItem('reported') || '[]';
     reported = JSON.parse(reported);
+    var hidden = localStorage.getItem('hidden') || '[]';
+    hidden = JSON.parse(hidden);
+
+    let domains = Array.from(document.getElementsByClassName("domain"));
     domains.forEach((domain) => {
        if (reported.includes(domain.textContent)) {
-            domain.closest("li").innerHTML = feedback(domain.textContent);
+            const li = domain.closest("li");
+            report_feedback(li);
+       }
+       if (hidden.includes(domain.textContent)) {
+            domain.closest("li").innerHTML = hide_feedback(domain.textContent);
        }
     });
-
-    function unreport(btn) {
-        const li = btn.closest("li");
-        const articleDomain = li.querySelector("a");
-        const domain = articleDomain.textContent;
-        reported = reported.filter((d) => d != domain);
-        localStorage.setItem('has_reported', JSON.stringify(reported));
-        window.location.reload();
-    }
 
     function report(btn) {
         const li = btn.closest("li");
@@ -53,8 +58,41 @@ JS = """\
             body: JSON.stringify({ domain })
         });
         reported.push(domain);
-        localStorage.setItem('has_reported', JSON.stringify(reported));
-        li.innerHTML = feedback(domain);
+        localStorage.setItem('reported', JSON.stringify(reported));
+        report_feedback(li);
+    }
+
+    function unreport(btn) {
+        const li = btn.closest("li");
+        const articleDomain = li.querySelector("a.domain");
+        const domain = articleDomain.textContent;
+        reported = reported.filter((d) => d != domain);
+        localStorage.setItem('reported', JSON.stringify(reported));
+        fetch("https://remote_url.com/report", {
+            method: "POST",
+            body: JSON.stringify({ domain })
+        }).finally(() => {
+            window.location.reload();
+        });
+    }
+
+    function hide(btn) {
+        const li = btn.closest("li");
+        const articleDomain = li.querySelector("a.domain");
+        const domain = articleDomain.textContent;
+
+        hidden.push(domain);
+        localStorage.setItem('hidden', JSON.stringify(hidden));
+        li.innerHTML = hide_feedback(domain);
+    }
+
+    function show(btn) {
+        const li = btn.closest("li");
+        const articleDomain = li.querySelector("a");
+        const domain = articleDomain.textContent;
+        hidden = hidden.filter((d) => d != domain);
+        localStorage.setItem('hidden', JSON.stringify(hidden));
+        window.location.reload();
     }
 
     document.addEventListener("click", function(e) {
@@ -64,9 +102,12 @@ JS = """\
         if (e.target.className == "unreport") {
             return unreport(e.target);
         }
-    });
-    document.querySelectorAll("button.report").forEach(btn => {
-        btn.addEventListener("click", report);
+        if (e.target.className == "hide") {
+            return hide(e.target);
+        }
+        if (e.target.className == "show") {
+            return show(e.target);
+        }
     });
 """
 
@@ -172,7 +213,7 @@ nav > span {
     color: var(--border);
 }
 
-button.report, button.unreport {
+button.report, button.unreport, button.hide, button.show {
     background: transparent;
     border: 0px transparent;
     padding: 0px;
@@ -183,7 +224,7 @@ button.report, button.unreport {
     color: inherit;
 }
 
-button.report:hover, button.unreport {
+button.report:hover, button.unreport, button.hide, button.show {
     opacity: 0.8;
     cursor: pointer;
 }"""
@@ -222,6 +263,9 @@ def render_items_html(items: list[dict], start_index: int) -> str:
         lines.append("\t\t\t\t\t|")
         lines.append(
             f'\t\t\t\t\t<a class="domain" href="https://{domain}" target="_blank">{domain}</a> | '
+        )
+        lines.append(
+            f'\t\t\t\t\t<button class="hide">esconder</button> | '
         )
         lines.append(
             f'\t\t\t\t\t<button class="report">reportar</button>'
