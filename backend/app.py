@@ -1,9 +1,13 @@
 import sqlite3
 import os
 import hashlib
+import click
 from flask import Flask, request, g
 from dotenv import load_dotenv
+import jsonlines
 from datetime import datetime
+import json
+from urllib.parse import urlparse
 
 load_dotenv()
 DATABASE = os.getenv('DATABASE')
@@ -44,6 +48,11 @@ def query_db(query, args=(), one=False):
 def get_feed(domain):
     return query_db("SELECT id FROM feeds WHERE domain = ?", args=[domain], one=True)
 
+def insert_feed(domain, feed_url):
+    con = get_db()
+    con.execute("INSERT INTO feeds (domain, feed_url) VALUES (?, ?)", [domain, feed_url])
+    con.commit()
+
 def get_report(feed_id, hash_id):
     return query_db("SELECT hash_id FROM reports WHERE feed_id = ? AND hash_id = ?", args=[feed_id, hash_id], one=True)
 
@@ -80,3 +89,30 @@ def report():
     insert_report(feed['id'], hash_id)
 
     return {"message": "Report registered"}, 201
+
+
+@app.cli.command("import-feeds")
+@click.argument("file_path")
+def import_feeds(file_path):
+    """Import feeds from a .jsonl file. `domain` and `rss_url` are required."""
+    errors = []
+    with jsonlines.open(file_path) as reader:
+        for obj in reader:
+            domain = obj.get("domain")
+            rss_url = obj.get("rss_url")
+            if rss_url is None:
+                errors.append({
+                    "domain": domain,
+                    "rss_url": rss_url,
+                    "error": "missing rss_url"
+                })
+                continue
+            if domain is None:
+                domain = urlparse(rss_url).netloc
+            try:
+                insert_feed(domain, rss_url)
+            except sqlite3.IntegrityError:
+                # duplicated feed_url, ignore silently
+                continue
+    if len(errors) > 0:
+        print(json.dumps(errors, indent=2))
