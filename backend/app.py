@@ -3,6 +3,7 @@ import os
 import hashlib
 import click
 from flask import Flask, request, g
+from flask_cors import CORS
 from dotenv import load_dotenv
 import jsonlines
 from datetime import datetime
@@ -13,6 +14,7 @@ load_dotenv()
 DATABASE = os.getenv('DATABASE')
 # TODO: current implementation is closer to a pepper
 SALT = os.getenv('SALT')
+CORS_ORIGIN = os.getenv('CORS_ORIGIN')
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -39,7 +41,6 @@ def salt_and_hash(request, duration='day'):
     return hash_id
 
 def query_db(query, args=(), one=False):
-    print(args)
     cur = get_db().execute(query, args)
     rv = cur.fetchall()
     cur.close()
@@ -62,6 +63,7 @@ def insert_report(feed_id, hash_id):
     con.commit()
 
 app = Flask(__name__)
+CORS(app, origins=[CORS_ORIGIN])
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -81,15 +83,13 @@ def report():
 
     hash_id = salt_and_hash(request, 'year')
 
-    print(feed['id'], hash_id.hex())
     report = get_report(feed['id'], hash_id)
+
     if report is not None:
         return {"message": "Report already computed"}
 
     insert_report(feed['id'], hash_id)
-
     return {"message": "Report registered"}, 201
-
 
 @app.cli.command("import-feeds")
 @click.argument("file_path")

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.1.2",
+    "flask-cors>=6.0.2",
     "jsonlines>=4.0.0",
     "python-dotenv>=1.2.1",
 ]
