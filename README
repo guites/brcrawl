@@ -30,7 +30,7 @@ Format it to .jsonl before importing with `flask import-feeds`:
 
 ```
 # on the backend/ directory
-jq -R -n '[inputs] | map({rss_url: .})' rss_urls.txt > rss.jsonl
+jq -R -n -c '[inputs] | map({rss_url: .}) | .[]' rss_urls.txt > rss.jsonl
 uv run flask import-feeds rss.jsonl
 ```
 
