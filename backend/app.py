@@ -62,6 +62,11 @@ def insert_report(feed_id, hash_id):
     con.execute("INSERT INTO reports (feed_id, hash_id) VALUES (?, ?)", [feed_id, hash_id])
     con.commit()
 
+def delete_report(feed_id, hash_id):
+    con = get_db()
+    con.execute("DELETE FROM reports WHERE feed_id = ? AND hash_id = ?", [feed_id, hash_id])
+    con.commit()
+
 app = Flask(__name__)
 CORS(app, origins=[CORS_ORIGIN])
 
@@ -86,7 +91,8 @@ def report():
     report = get_report(feed['id'], hash_id)
 
     if report is not None:
-        return {"message": "Report already computed"}
+        delete_report(feed['id'], hash_id)
+        return {"message": "Report deleted"}, 200
 
     insert_report(feed['id'], hash_id)
     return {"message": "Report registered"}, 201
