@@ -113,8 +113,20 @@ def import_feeds(file_path):
                     "error": "missing rss_url"
                 })
                 continue
+
             if domain is None:
                 domain = urlparse(rss_url).netloc
+
+            if domain == '':
+                errors.append({
+                    "domain": domain,
+                    "rss_url": rss_url,
+                    "error": "improper rss_url (probably missing scheme)"
+                })
+                continue
+
+            # deduplicate the feed url by removing trailing slashes
+            rss_url = rss_url.rstrip('/')
             try:
                 insert_feed(domain, rss_url)
             except sqlite3.IntegrityError:
