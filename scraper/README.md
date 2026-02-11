@@ -51,30 +51,11 @@ uv run scrapy crawl bearblog_discover -O first_run.jsonl
 Posterior runs:
 
 ```
-uv run scrapy crawl bearblog_discover -o second_run.jsonl -a latest="//yaletown.observer/youve-got-to-believe-you-hear-me"
+uv run scrapy crawl bearblog_discover -o second_run.jsonl -a latest="https://yaletown.observer/youve-got-to-believe-you-hear-me"
 ```
 
-Get the URL for the latest flag by looking at the first line of your last generated .jsonl.
-
-Get latest post by each blog:
+Get the list of unique blogs urls:
 
 ```
-cat first_run.jsonl second_run.jsonl > input.jsonl
-
-jq -n '
-  reduce inputs as $item
-    ({};
-     .[$item.blog_url] as $existing
-     | if $existing == null
-         or $item.published_at > $existing.published_at
-       then
-         .[$item.blog_url] = $item
-       else
-         .
-       end
-    )
-  | [ .[] ]                     # turn the map into a JSON array
-  | sort_by(.published_at)      # oldest → newest
-  | reverse                     # newest → oldest
-' input.jsonl > latest-per-blog.json
+cat first_run.jsonl second_run.jsonl | jq -r .blog_url | sort -u > bearblog-urls.txt
 ```
