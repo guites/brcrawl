@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS feeds (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_feed_url
     ON feeds(feed_url);
 
-CREATE INDEX IF NOT EXISTS idx_feeds_domain
+CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_domain
     ON feeds(domain);
 
 -- reports table
