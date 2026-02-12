@@ -38,6 +38,10 @@ class RssSpider(scrapy.Spider):
         parsed = urlparse(url)
         return f"{parsed.scheme}://{parsed.netloc}"
 
+    def _domain(self, url):
+        parsed = urlparse(url)
+        return parsed.netloc
+
     def parse(self, response, base_url):
         rss_links = response.css('link[rel="alternate"]')
         if rss_links:
@@ -45,7 +49,7 @@ class RssSpider(scrapy.Spider):
             if href:
                 rss_url = urljoin(base_url, href)
                 self.logger.info(f"Found RSS link for {response.url}: {rss_url}")
-                yield {"url": response.url, "rss_url": rss_url}
+                yield {"url": response.url, "rss_url": rss_url, "domain": self._domain(response.url)}
                 return
 
         # No <link rel="alternate"> found — try common RSS suffixes
@@ -64,8 +68,9 @@ class RssSpider(scrapy.Spider):
 
     def parse_suffix(self, response, original_url, base_url, suffix_index):
         rss_url = response.url
+
         self.logger.info(f"Found RSS link for {original_url}: {rss_url}")
-        yield {"url": original_url, "rss_url": rss_url}
+        yield {"url": original_url, "rss_url": rss_url, "domain": self._domain(original_url)}
 
     def handle_suffix_error(self, failure):
         request = failure.request
