@@ -1,10 +1,22 @@
+-- feed_status table
+CREATE TABLE IF NOT EXISTS feed_status (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE
+);
+
+-- default statuses
+INSERT INTO feed_status (name) VALUES ('verified'), ('crawled'), ('suggested'), ('blocked');
+
 -- feeds table
 CREATE TABLE IF NOT EXISTS feeds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     domain TEXT NOT NULL,
     feed_url TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    status_id INTEGER NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (status_id) REFERENCES feed_status(id)
 );
+
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_feed_url
     ON feeds(feed_url);
