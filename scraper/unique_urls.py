@@ -22,10 +22,12 @@ def unique_by_domain(urls):
     """Yield only the first URL seen for each domain."""
     seen: set[str] = set()
     for url in urls:
-        domain = urlparse(url).netloc
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        scheme = parsed_url.scheme
         if domain not in seen:
             seen.add(domain)
-            yield url
+            yield f"{scheme}://{domain}"
 
 
 def main():
