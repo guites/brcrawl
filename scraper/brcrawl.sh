@@ -29,4 +29,9 @@ uv run scrapy crawl rss -a urls_file="$1/filtered_urls.txt" -o "$1/rss.jsonl"
 
 # 5. Determine whether website is written in portuguese
 # TODO: check whether https://ai.google.dev/edge/mediapipe/solutions/text/language_detector/python would be a better solution
-uv run scrapy crawl lang_detect -a urls_file="$1/rss.jsonl" -o "$1/lang_detect.json"
+uv run scrapy crawl lang_detect -a urls_file="$1/rss.jsonl" -o "$1/lang_detect.jsonl"
+
+# 6. Filter out everything except pt
+jq -c '. | select(.lang == "pt")' "$1/lang_detect.jsonl" > "$1/pt.jsonl"
+
+# 7. How do I make sure remaining links are actually personal blogs?
