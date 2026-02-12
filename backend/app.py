@@ -11,10 +11,10 @@ import json
 from urllib.parse import urlparse
 
 load_dotenv()
-DATABASE = os.getenv('DATABASE')
+DATABASE = os.environ['DATABASE']
 # TODO: current implementation is closer to a pepper
-SALT = os.getenv('SALT')
-CORS_ORIGIN = os.getenv('CORS_ORIGIN')
+SALT = os.environ['SALT']
+CORS_ORIGIN = os.environ['CORS_ORIGIN']
 
 def get_db():
     db = getattr(g, '_database', None)
