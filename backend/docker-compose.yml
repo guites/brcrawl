@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        UID: ${UID}
+        GID: ${GID}
+    container_name: brcrawl_app
+    networks:
+      - traefik_proxy
+    expose:
+      - 8000
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      - "traefik.http.routers.brcrawl.rule=Host(`brcrawl.guilhermegarcia.dev`)"
+      - "traefik.http.routers.brcrawl.entrypoints=websecure"
+      - "traefik.http.routers.brcrawl.tls.certresolver=lets-encrypt"
+
+      - "traefik.http.services.brcrawl.loadbalancer.server.port=8000"
+
+      # optional compression
+      - "traefik.http.middlewares.brcrawl-compress.compress=true"
+      - "traefik.http.routers.brcrawl.middlewares=brcrawl-compress"
+    env_file:
+      - .env
+    volumes:
+      - /home/ubuntu/data/brcrawl:/data
+
+networks:
+  traefik_proxy:
+    external: true
