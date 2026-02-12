@@ -128,7 +128,7 @@ CSS = """\
     --text: var(--txt, #cfcfcf);
     --border: var(--bd, #c0c0c0);
     --background: var(--bg, #1D1F21);
-    font-size: min(calc(.5rem + 0.75vw), 16px);
+    font-size: min(calc(.75rem + 0.75vw), 16px);
 }
 
 @media (prefers-color-scheme: light) {
@@ -236,6 +236,14 @@ button.report, button.unreport, button.hide, button.show {
 button.report:hover, button.unreport, button.hide:hover, button.show {
     opacity: 0.8;
     cursor: pointer;
+}
+
+.title-br { display: none; }
+
+@media screen and (max-width: 470px) {
+    header { text-align: center; }
+    .title-br { display: initial; }
+    .title-span { margin: 10px 0px; display: inline-block; }
 }"""
 
 
@@ -293,17 +301,17 @@ def render_nav(current_page: int, total_pages: int) -> str:
     parts = ["\t\t<nav>"]
     if current_page > 1:
         prev_file = page_filename(current_page - 1)
-        parts.append(f'\t\t\t<a href="{prev_file}">&larr; Previous</a>')
+        parts.append(f'\t\t\t<a href="{prev_file}">&larr; Voltar</a>')
     else:
-        parts.append("\t\t\t<span>&larr; Previous</span>")
+        parts.append("\t\t\t<span>&larr; Voltar</span>")
 
-    parts.append(f"\t\t\t<span>Page {current_page} of {total_pages}</span>")
+    parts.append(f"\t\t\t<span>Página {current_page} de {total_pages}</span>")
 
     if current_page < total_pages:
         next_file = page_filename(current_page + 1)
-        parts.append(f'\t\t\t<a href="{next_file}">Next &rarr;</a>')
+        parts.append(f'\t\t\t<a href="{next_file}">Avançar &rarr;</a>')
     else:
-        parts.append("\t\t\t<span>Next &rarr;</span>")
+        parts.append("\t\t\t<span>Avançar &rarr;</span>")
 
     parts.append("\t\t</nav>")
     return "\n".join(parts)
@@ -351,7 +359,8 @@ def render_page_skeleton(
 <body>
 \t<header>
 \t\t<h1>{escape(name)}</h1>
-\t\t{escape(description)}
+\t\t<br class="title-br"/>
+\t\t<span class="title-span">{escape(description)}</span>
 \t</header>
 \t<main>
 {main_html}
