@@ -18,6 +18,7 @@ description="Diretório da smallweb brasileira"
 : > warnings.log  # truncate/create the warnings log
 
 for feed in "$PWD"/feed_part*; do
+    echo "Processing $feed"
     cat "$feed" | docker run -v .:/app -i thebigroomxxl/tinyfeed -t feed.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
 done
 
