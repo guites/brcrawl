@@ -1,12 +1,14 @@
 import scrapy
 import re
+import json
+from datetime import datetime
 
 import logging
 
 from urllib.parse import urlparse
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import SitemapSpider
-
+import os
 logging.getLogger('protego._protego').setLevel(logging.INFO)
 
 
@@ -14,19 +16,40 @@ class ExternalUrlsSpider(SitemapSpider):
     name = "external_urls"
 
     async def start(self):
-
         self.urls_file = getattr(self, "urls_file", None)
+        if self.urls_file is None:
+            raise scrapy.exceptions.CloseSpider("Missing urls_file argument")
+        if not os.path.exists:
+            raise scrapy.exceptions.CloseSpider(f"File <{self.urls_file}> not found")
+
         self.sitemap_urls = []
+        self.crawled_at_by_domain = {}
         with open(self.urls_file, 'r') as f:
             for line in f.readlines():
-                url = line.strip().strip('/')
-                if url.startswith('//'):
-                    url = 'https:' + url
-                url = url + '/sitemap.xml'
+                seed = json.loads(line)
+                self.crawled_at_by_domain[seed['domain']] = datetime.strptime(seed['crawled_at'], "%Y-%m-%d %H:%M:%S").date() if seed['crawled_at'] else None
+                url = f"https://{seed['domain']}/sitemap.xml"
                 self.sitemap_urls.append(url)
         async for item_or_request in super().start():
             yield item_or_request
 
+    def sitemap_filter(self, entries):
+        for entry in entries:
+            # Each entry is a {"loc": "", "lastmod": ""} dictionary
+            # lastmod seems to be either YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ
+            domain = urlparse(entry['loc']).netloc
+            crawled_at = self.crawled_at_by_domain[domain]
+            if 'lastmod' in entry and crawled_at is not None:
+                mod_date = None
+                try:
+                    mod_date = datetime.strptime(entry["lastmod"], "%Y-%m-%d").date()
+                except SyntaxError:
+                    mod_date = datetime.strptime(entry["lastmod"], "%Y-%m-%dT%H:%M:%S%z").date()
+                if mod_date >= crawled_at:
+                    yield entry
+            else:
+                # if we have no metadata, always crawl
+                yield entry
 
     def parse(self, response):
         self.log(f"Scrapping URL {response.url}")
