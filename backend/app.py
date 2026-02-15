@@ -4,7 +4,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from functions import salt_and_hash
 from cli import register_cli
-from db import get_feed, get_report, delete_report, insert_report
+from db import get_feed_by_domain, get_report, delete_report, insert_report
 
 
 load_dotenv()
@@ -27,7 +27,7 @@ def report():
     domain = payload.get("domain")
     if not domain:
         return {"message": "Missing domain"}, 400
-    feed = get_feed(domain)
+    feed = get_feed_by_domain(domain)
     if feed is None:
         return {"message": "Unknown domain"}, 400
 

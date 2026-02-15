@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS feeds (
     FOREIGN KEY (status_id) REFERENCES feed_status(id)
 );
 
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_feed_url
     ON feeds(feed_url);
 
@@ -36,3 +35,9 @@ CREATE TABLE IF NOT EXISTS reports (
     CHECK (length(hash_id) = 32)
 );
 
+-- crawls table; each feed can have multiple crawls
+CREATE TABLE IF NOT EXISTS feed_crawls (
+    feed_id INTEGER NOT NULL,
+    crawled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+);

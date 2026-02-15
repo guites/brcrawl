@@ -9,5 +9,6 @@ dependencies = [
     "flask-cors>=6.0.2",
     "gunicorn>=25.0.3",
     "jsonlines>=4.0.0",
+    "pyperclip>=1.11.0",
     "python-dotenv>=1.2.1",
 ]

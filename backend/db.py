@@ -17,12 +17,38 @@ def query_db(query, args=(), one=False):
     cur.close()
     return (rv[0] if rv else None) if one else rv
 
-def get_feed(domain):
-    return query_db("SELECT id FROM feeds WHERE domain = ?", args=[domain], one=True)
+def get_feed_by_domain(domain):
+    return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE domain = ?", args=[domain], one=True)
+
+def get_feed_by_url(feed_url):
+    return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.feed_url = ?", [feed_url], one=True)
+
+def get_feed_by_id(feed_id):
+    return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.id = ?", [feed_id], one=True)
+
+def get_oldest_crawled_feed():
+    return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.status_id = 2 ORDER BY created_at ASC", one=True)
+
+def get_feeds_most_recent_crawl_date(limit):
+    query = "SELECT f.*, fc1.crawled_at FROM feeds f LEFT JOIN feed_crawls fc1 ON (f.id = fc1.feed_id) LEFT OUTER JOIN feed_crawls fc2 ON (f.id = fc2.feed_id AND fc1.crawled_at < fc2.crawled_at) ORDER BY fc1.crawled_at ASC"
+    if limit:
+        query += " LIMIT ?"
+        return query_db(query, [limit])
+    return query_db(query)
+
+def update_feed_status(feed_id, new_status):
+    con = get_db()
+    con.execute("UPDATE feeds SET status_id = ? WHERE id = ?", [new_status, feed_id])
+    con.commit()
 
 def insert_feed(domain, feed_url, status_id):
     con = get_db()
     con.execute("INSERT INTO feeds (domain, feed_url, status_id) VALUES (?, ?, ?)", [domain, feed_url, status_id])
+    con.commit()
+
+def batch_update_crawled_at(feed_ids):
+    con = get_db()
+    con.executemany("INSERT INTO feed_crawls (feed_id) VALUES (?)", feed_ids)
     con.commit()
 
 def get_report(feed_id, hash_id):
