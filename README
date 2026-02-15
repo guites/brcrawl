@@ -43,7 +43,7 @@ Always use the full list of imported feed_urls. Order randomly to reduce chances
 sqlite3 brcrawl.sqlite3
 
 .output ../website/feeds.txt
-SELECT feed_url FROM feeds ORDER BY RANDOM();
+SELECT feed_url FROM feeds WHERE status_id = 1 ORDER BY RANDOM();
 .output stdout
 .quit
 ```
@@ -57,3 +57,11 @@ Now use the generated feeds.txt file to run the `build.sh` command from the webs
 ```
 
 The resulting .html files can be deployed (eg. via github pages or vps with nginx).
+
+# Recently approved feeds
+
+Filter by status verified and apply a filter based on the date. Eg;
+
+```
+SELECT feed_url FROM feeds WHERE status_id = 1 AND created_at > '2026-02-12 10:00:00';
+```
