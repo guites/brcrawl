@@ -29,7 +29,8 @@ def register_cli(app):
     @app.cli.command("import-feeds")
     @click.argument("file_path")
     @click.option("--feed-status", required=True, type=click.Choice(FeedStatus, case_sensitive=False))
-    def import_feeds(file_path, feed_status: FeedStatus):
+    @click.option("--output")
+    def import_feeds(file_path, feed_status: FeedStatus, output):
         """Import feeds from a .jsonl file.
 
         {"domain":"example.com", "rss_url":"https://example.com/feed"}
@@ -38,13 +39,13 @@ def register_cli(app):
         by a human (`verified`), crawled by the bot (`crawled`),
         suggested by a third party (`suggested`) or should be removed
         from the system (`blocked`)"""
-        errors = []
+        report = { "errors": [], "logs": [] }
         with jsonlines.open(file_path) as reader:
             for obj in reader:
                 domain = obj.get("domain")
                 rss_url = obj.get("rss_url")
                 if rss_url is None:
-                    errors.append({
+                    report['errors'].append({
                         "domain": domain,
                         "rss_url": rss_url,
                         "error": "missing rss_url"
@@ -55,7 +56,7 @@ def register_cli(app):
                     domain = urlparse(rss_url).netloc
 
                 if domain == '':
-                    errors.append({
+                    report['errors'].append({
                         "domain": domain,
                         "rss_url": rss_url,
                         "error": "improper rss_url (probably missing scheme)"
@@ -66,11 +67,27 @@ def register_cli(app):
                 rss_url = rss_url.rstrip('/')
                 try:
                     insert_feed(domain, rss_url, feed_status.value)
+                    report['logs'].append(
+                        {
+                            "domain": domain,
+                            "rss_url": rss_url,
+                            "logs": "Added"
+                        }
+                    )
                 except sqlite3.IntegrityError:
-                    # duplicated feed_url, ignore silently
+                    report['logs'].append(
+                        {
+                            "domain": domain,
+                            "rss_url": rss_url,
+                            "log": "Duplicated"
+                        }
+                    )
                     continue
-        if len(errors) > 0:
-            print(json.dumps(errors, indent=2))
+        if output:
+            with open(output, "w", encoding='utf-8') as w:
+                json.dump(report, w, indent=2)
+        else:
+            print(json.dumps(report, indent=2))
 
     @app.cli.command("find-feed")
     @click.option("--feed", required=False)
