@@ -1,13 +1,13 @@
 #!/bin/bash
 
 if [[ -z "$1" || ! -d "$1" ]]; then
-    echo "Usage: ./brcrawl.sh <directory>"
+    echo "Usage: ./scrape.sh <directory>"
     echo "<directory> is the path to a directory with a seeds.txt and blocklist.txt file, and where the program output will be saved."
     exit 1
 fi
 
-if [[ ! -f "$1/seeds.txt" || ! -f "$1/blocklist.txt" ]]; then
-    echo "Please create the seeds.txt and blocklist.txt files"
+if [[ ! -f "$1/seeds.jsonl" || ! -f "$1/blocklist.txt" ]]; then
+    echo "Please create the seeds.jsonl and blocklist.txt files"
     echo "See README.md for instructions"
     exit 1
 fi
@@ -34,4 +34,10 @@ uv run scrapy crawl lang_detect -a urls_file="$1/rss.jsonl" -o "$1/lang_detect.j
 # 6. Filter out everything except pt
 jq -c '. | select(.lang == "pt")' "$1/lang_detect.jsonl" > "$1/pt.jsonl"
 
-# 7. How do I make sure remaining links are actually personal blogs?
+# 7. Query LLM (DeepSeek) on whether it's a personal blog or not
+# currently we have a very rough prompt that doens't includes small publications, orgs and etc
+# that would be welcome to our index
+uv run scrapy crawl llm_classifier -a urls_file="$1/pt.jsonl" -o "$1/llm_classifier.jsonl"
+
+# 8. Filter out everything that is not considered `personal_blog
+jq -c '. | select(.personal_blog==true)' "$1/llm_classifier.jsonl" > "$1/personal_blog.jsonl"

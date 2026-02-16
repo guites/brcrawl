@@ -16,7 +16,7 @@ uv sync
 
 ## Usage
 
-The pipeline is described at `brcrawl.sh`.
+The pipeline is described at `scrape.sh`.
 
 In order to run the script you will need two files:
 
