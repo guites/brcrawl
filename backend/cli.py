@@ -3,7 +3,7 @@ import click
 from urllib.parse import urlparse
 import json
 import sqlite3
-from db import insert_feed, batch_update_crawled_at, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status
+from db import insert_feed, batch_update_crawled_at, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
 import enum
 import pyperclip
 
@@ -146,3 +146,17 @@ def register_cli(app):
                 writer.write_all(feeds_obj)
         if mark_crawled:
             batch_update_crawled_at([ (feed['id'], ) for feed in feeds ])
+
+    @app.cli.command("known-domains")
+    @click.option("--output")
+    def known_domains(output):
+        """Lists all domains registered on the database"""
+        feeds = get_feeds()
+        domains_obj = [feed['domain'] for feed in feeds]
+        if output:
+            with open(output, "w", encoding='utf-8') as w:
+                for domain in domains_obj:
+                    w.write(f"{domain}\n")
+        else:
+            for domain in domains_obj:
+                print(domain)

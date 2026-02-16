@@ -36,6 +36,9 @@ def get_feeds_most_recent_crawl_date(limit):
         return query_db(query, [limit])
     return query_db(query)
 
+def get_feeds():
+    return query_db("SELECT domain FROM feeds")
+
 def update_feed_status(feed_id, new_status):
     con = get_db()
     con.execute("UPDATE feeds SET status_id = ? WHERE id = ?", [new_status, feed_id])
