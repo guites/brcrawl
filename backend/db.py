@@ -30,7 +30,7 @@ def get_oldest_crawled_feed():
     return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.status_id = 2 ORDER BY created_at ASC", one=True)
 
 def get_feeds_most_recent_crawl_date(limit):
-    query = "SELECT f.*, fc1.crawled_at FROM feeds f LEFT JOIN feed_crawls fc1 ON (f.id = fc1.feed_id) LEFT OUTER JOIN feed_crawls fc2 ON (f.id = fc2.feed_id AND fc1.crawled_at < fc2.crawled_at) ORDER BY fc1.crawled_at ASC"
+    query = "SELECT f.*, fc1.crawled_at FROM feeds f LEFT JOIN feed_crawls fc1 ON (f.id = fc1.feed_id) LEFT OUTER JOIN feed_crawls fc2 ON (f.id = fc2.feed_id AND fc1.crawled_at < fc2.crawled_at) WHERE f.status_id = 1 ORDER BY fc1.crawled_at ASC"
     if limit:
         query += " LIMIT ?"
         return query_db(query, [limit])

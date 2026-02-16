@@ -152,7 +152,7 @@ def register_cli(app):
     @click.option("--output")
     @click.option("--mark-crawled", is_flag=True)
     def crawl_feeds(limit, output, mark_crawled):
-        """Lists feeds which haven't been crawled for the longest while"""
+        """Lists verified feeds which haven't been crawled for the longest while"""
         feeds = get_feeds_most_recent_crawl_date(limit)
         feeds_obj = [{ "id": feed['id'], "domain": feed['domain'], "feed_url": feed['feed_url'], "crawled_at": feed["crawled_at"]} for feed in feeds]
         if not output:
