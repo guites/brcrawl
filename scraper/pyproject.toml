@@ -8,5 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "jsonlines>=4.0.0",
     "langdetect>=1.0.9",
+    "llama-index>=0.14.14",
+    "llama-index-llms-deepseek>=0.2.2",
     "scrapy>=2.14.1",
 ]
