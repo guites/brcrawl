@@ -16,12 +16,14 @@ fi
 uv run scrapy crawl external_urls -a urls_file="$1/seeds.jsonl" -o "$1/external_urls.jsonl"
 
 # TODO: handle repetion by www.
+
 # 2. Flatten list of external urls and remove duplicate domains;
 uv run unique_urls.py "$1/external_urls.jsonl" > "$1/unique_urls.txt"
 
 # TODO: how do we filter out mastodon instances?
-# TODO: use a separate list for filtering subdomains? ex. xxx.substack.com
-# 3. Filter out known unwanted domains and URLs
+# TODO: use a separate list for filtering subdomains? ex. xxx.substack.com, xxx.tumblr.com, etc
+
+# 3. Filter out unwanted domains and domains we have already indexed
 uv run filter_urls.py "$1/unique_urls.txt" "$1/blocklist.txt" > "$1/filter_urls.txt"
 
 # 4. Get RSS links for the external URLs
@@ -31,13 +33,15 @@ uv run scrapy crawl rss -a urls_file="$1/filter_urls.txt" -o "$1/rss.jsonl"
 # TODO: check whether https://ai.google.dev/edge/mediapipe/solutions/text/language_detector/python would be a better solution
 uv run scrapy crawl lang_detect -a urls_file="$1/rss.jsonl" -o "$1/lang_detect.jsonl"
 
-# 6. Filter out everything except pt
-jq -c '. | select(.lang == "pt")' "$1/lang_detect.jsonl" > "$1/pt.jsonl"
+# 6. Split between portuguese websites and other
+jq -c '. | select(.lang == "pt")' "$1/lang_detect.jsonl" > "$1/lang_detect_pt.jsonl"
+jq -c '. | select(.lang != "pt")' "$1/lang_detect.jsonl" > "$1/lang_detect_other.jsonl"
 
 # 7. Query LLM (DeepSeek) on whether it's a personal blog or not
-# currently we have a very rough prompt that doens't includes small publications, orgs and etc
-# that would be welcome to our index
-uv run scrapy crawl llm_classifier -a urls_file="$1/pt.jsonl" -o "$1/llm_classifier.jsonl"
+# currently we have a very rough prompt that excludes small publications,
+# orgs and other blogs that would be welcome to our index
+uv run scrapy crawl llm_classifier -a urls_file="$1/lang_detect_pt.jsonl" -o "$1/llm_classifier.jsonl"
 
-# 8. Filter out everything that is not considered `personal_blog
-jq -c '. | select(.personal_blog==true)' "$1/llm_classifier.jsonl" > "$1/personal_blog.jsonl"
+# 8. Split based on LLM decision
+jq -c '. | select(.personal_blog==true)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_true.jsonl"
+jq -c '. | select(.personal_blog==false)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_false.jsonl"
