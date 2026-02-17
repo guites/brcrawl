@@ -3,14 +3,9 @@ import click
 from urllib.parse import urlparse
 import json
 import sqlite3
-from db import insert_feed, batch_update_crawled_at, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
+from db import insert_feed, insert_feed_history, batch_update_crawled_at, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
 import enum
 import pyperclip
-
-# TODO: feeds table should have current_status
-# but we could also keep a feed_status_history table
-# to track when we first discovered something, when it was
-# blocked, when it was suggested, etc
 
 class FeedStatus(enum.Enum):
     VERIFIED = 1
@@ -24,64 +19,57 @@ class ShortFeedStatus(enum.Enum):
     S = 3
     B = 4
 
+class FeedBlockedDescr(enum.Enum):
+    lang_detect_other = "lang_detect_other"
+    llm_classifier_false = "llm_classifier_false"
+
+class ShortFeedBlockedDescr(enum.Enum):
+    lang = "lang_detect_other"
+    llm = "llm_classifier_false"
 
 def register_cli(app):
     @app.cli.command("import-feeds")
     @click.argument("file_path")
     @click.option("--feed-status", required=True, type=click.Choice(FeedStatus, case_sensitive=False))
+    @click.option("--descr", required=False, type=click.Choice(FeedBlockedDescr, case_sensitive=False))
     @click.option("--output")
-    def import_feeds(file_path, feed_status: FeedStatus, output):
+    def import_feeds(file_path, feed_status: FeedStatus, output, descr: FeedBlockedDescr):
         """Import feeds from a .jsonl file.
 
         {"domain":"example.com", "rss_url":"https://example.com/feed"}
 
         feed_status is used to track whether the list of feeds has been verified
         by a human (`verified`), crawled by the bot (`crawled`),
-        suggested by a third party (`suggested`) or should be removed
-        from the system (`blocked`)"""
+        suggested by a third party (`suggested`) or doesn't meet brcrawl's
+        criteria for blogs (`blocked`)"""
+        if feed_status.value == FeedStatus.BLOCKED and descr is None:
+            raise click.UsageError("--descr is required when --feed-status is BLOCKED")
+
         report = { "errors": [], "logs": [] }
         with jsonlines.open(file_path) as reader:
             for obj in reader:
                 domain = obj.get("domain")
                 rss_url = obj.get("rss_url")
                 if rss_url is None:
-                    report['errors'].append({
-                        "domain": domain,
-                        "rss_url": rss_url,
-                        "error": "missing rss_url"
-                    })
+                    report['errors'].append({ "domain": domain, "rss_url": rss_url, "error": "missing rss_url" })
                     continue
 
                 if domain is None:
                     domain = urlparse(rss_url).netloc
 
                 if domain == '':
-                    report['errors'].append({
-                        "domain": domain,
-                        "rss_url": rss_url,
-                        "error": "improper rss_url (probably missing scheme)"
-                    })
+                    report['errors'].append({ "domain": domain, "rss_url": rss_url, "error": "improper rss_url (probably missing scheme)" })
                     continue
 
                 # deduplicate the feed url by removing trailing slashes
                 rss_url = rss_url.rstrip('/')
                 try:
                     insert_feed(domain, rss_url, feed_status.value)
-                    report['logs'].append(
-                        {
-                            "domain": domain,
-                            "rss_url": rss_url,
-                            "logs": "Added"
-                        }
-                    )
+                    feed = get_feed_by_domain(domain)
+                    insert_feed_history(feed['id'], feed['status_id'], descr.value)
+                    report['logs'].append({ "domain": domain, "rss_url": rss_url, "logs": "Added" })
                 except sqlite3.IntegrityError:
-                    report['logs'].append(
-                        {
-                            "domain": domain,
-                            "rss_url": rss_url,
-                            "log": "Duplicated"
-                        }
-                    )
+                    report['logs'].append({ "domain": domain, "rss_url": rss_url, "log": "Duplicated" })
                     continue
         if output:
             with open(output, "w", encoding='utf-8') as w:
@@ -132,7 +120,8 @@ def register_cli(app):
     @app.cli.command("update-feed")
     @click.option("--domain", prompt=True)
     @click.option("--feed-status", prompt=True, type=click.Choice(ShortFeedStatus, case_sensitive=False))
-    def update_feed(domain, feed_status):
+    @click.option("--descr", prompt=True, type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False))
+    def update_feed(domain, feed_status, descr):
         """Updates given feed status.
 
         If either domain or feed_status are not provided,
@@ -145,6 +134,7 @@ def register_cli(app):
         update_feed_status(feed_obj['id'], feed_status.value)
         feed_obj = get_feed_by_domain(domain)
         new_status = feed_obj['feed_status']
+        insert_feed_history(feed_obj['id'], feed_obj['status_id'], descr)
         print(f"Updated {domain} from {old_status} to {new_status}")
 
     @app.cli.command("crawl-feeds")

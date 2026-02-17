@@ -23,6 +23,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_feed_url
 CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_domain
     ON feeds(domain);
 
+-- feed status history
+CREATE TABLE IF NOT EXISTS feed_status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    feed_id INTEGER NOT NULL,
+    status_id INTEGER NOT NULL,
+    descr TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (status_id) REFERENCES feed_status(id)
+    FOREIGN KEY (feed_id) REFERENCES feeds(id)
+);
+
 -- reports table
 CREATE TABLE IF NOT EXISTS reports (
     feed_id INTEGER NOT NULL,
@@ -40,4 +51,11 @@ CREATE TABLE IF NOT EXISTS feed_crawls (
     feed_id INTEGER NOT NULL,
     crawled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+);
+
+-- domain blocklist; urls that have no valid rss feed
+CREATE TABLE IF NOT EXISTS blocklist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

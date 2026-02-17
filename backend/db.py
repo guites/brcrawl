@@ -18,7 +18,7 @@ def query_db(query, args=(), one=False):
     return (rv[0] if rv else None) if one else rv
 
 def get_feed_by_domain(domain):
-    return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE domain = ?", args=[domain], one=True)
+    return query_db("SELECT f.id as id, domain, feed_url, status_id, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE domain = ?", args=[domain], one=True)
 
 def get_feed_by_url(feed_url):
     return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.feed_url = ?", [feed_url], one=True)
@@ -35,6 +35,9 @@ def get_feeds_most_recent_crawl_date(limit):
         query += " LIMIT ?"
         return query_db(query, [limit])
     return query_db(query)
+
+def get_blocked_feeds_description():
+    return query_db("SELECT f.domain, fs.name, fsh1.descr FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id LEFT JOIN feed_status_history fsh1 ON (f.id = fsh1.feed_id ) LEFT OUTER JOIN feed_status_history fsh2 ON (f.id = fsh2.feed_id AND fsh1.created_at < fsh2.created_at) WHERE f.status_id = 4 ORDER BY fsh1.created_at DESC")
 
 def get_feeds():
     return query_db("SELECT domain FROM feeds")
@@ -65,4 +68,9 @@ def insert_report(feed_id, hash_id):
 def delete_report(feed_id, hash_id):
     con = get_db()
     con.execute("DELETE FROM reports WHERE feed_id = ? AND hash_id = ?", [feed_id, hash_id])
+    con.commit()
+
+def insert_feed_history(feed_id, status_id, desc):
+    con = get_db()
+    con.execute("INSERT INTO feed_status_history (feed_id, status_id, descr) VALUES (?, ?, ?)", [feed_id, status_id, desc])
     con.commit()
