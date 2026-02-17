@@ -40,6 +40,14 @@ class ExternalUrlsSpider(SitemapSpider):
         for entry in entries:
             # Each entry is a {"loc": "", "lastmod": ""} dictionary
             # lastmod seems to be either YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ
+            loc = entry['loc']
+
+            # skip common wordpress url patterns
+            if "/tag/" in loc:
+                return
+            if "/category/" in loc:
+                return
+
             domain = urlparse(entry['loc']).netloc
 
             if self.page_count_by_domain[domain] >= self.limit_pages_by_domain:
