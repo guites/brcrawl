@@ -24,9 +24,12 @@ class ExternalUrlsSpider(SitemapSpider):
 
         self.sitemap_urls = []
         self.crawled_at_by_domain = {}
+        self.page_count_by_domain = {}
+        self.limit_pages_by_domain = 150
         with open(self.urls_file, 'r') as f:
             for line in f.readlines():
                 seed = json.loads(line)
+                self.page_count_by_domain[seed['domain']] = 0
                 self.crawled_at_by_domain[seed['domain']] = datetime.strptime(seed['crawled_at'], "%Y-%m-%d %H:%M:%S").date() if seed['crawled_at'] else None
                 url = f"https://{seed['domain']}/sitemap.xml"
                 self.sitemap_urls.append(url)
@@ -38,6 +41,10 @@ class ExternalUrlsSpider(SitemapSpider):
             # Each entry is a {"loc": "", "lastmod": ""} dictionary
             # lastmod seems to be either YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ
             domain = urlparse(entry['loc']).netloc
+
+            if self.page_count_by_domain[domain] >= self.limit_pages_by_domain:
+                return
+
             crawled_at = self.crawled_at_by_domain[domain]
             if 'lastmod' in entry and crawled_at is not None:
                 mod_date = None
@@ -46,9 +53,11 @@ class ExternalUrlsSpider(SitemapSpider):
                 except SyntaxError:
                     mod_date = datetime.strptime(entry["lastmod"], "%Y-%m-%dT%H:%M:%S%z").date()
                 if mod_date >= crawled_at:
+                    self.page_count_by_domain[domain] += 1
                     yield entry
             else:
                 # if we have no metadata, always crawl
+                self.page_count_by_domain[domain] += 1
                 yield entry
 
     def parse(self, response):
