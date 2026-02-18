@@ -27,7 +27,7 @@ uv run unique_urls.py "$1/external_urls.jsonl" > "$1/unique_urls.txt"
 uv run filter_urls.py "$1/unique_urls.txt" "$1/blocklist.txt" > "$1/filter_urls.txt"
 
 # 4. Get RSS links for the external URLs
-uv run scrapy crawl rss -a urls_file="$1/filter_urls.txt" -o "$1/rss.jsonl"
+uv run scrapy crawl rss -a urls_file="$1/filter_urls.txt" -a no_rss="$1/no_rss.txt" -o "$1/rss.jsonl"
 
 # 5. Determine whether website is written in portuguese
 # TODO: check whether https://ai.google.dev/edge/mediapipe/solutions/text/language_detector/python would be a better solution
