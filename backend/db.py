@@ -74,3 +74,11 @@ def insert_feed_history(feed_id, status_id, desc):
     con = get_db()
     con.execute("INSERT INTO feed_status_history (feed_id, status_id, descr) VALUES (?, ?, ?)", [feed_id, status_id, desc])
     con.commit()
+
+def get_blocklist():
+    return query_db("SELECT domain FROM blocklist")
+
+def add_to_blocklist(domain):
+    con = get_db()
+    con.execute("INSERT INTO blocklist (domain) VALUES (?)", [domain])
+    con.commit()

@@ -3,7 +3,7 @@ import click
 from urllib.parse import urlparse
 import json
 import sqlite3
-from db import insert_feed, insert_feed_history, batch_update_crawled_at, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
+from db import add_to_blocklist, insert_feed, insert_feed_history, batch_update_crawled_at, get_blocklist, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
 import enum
 import pyperclip
 
@@ -66,7 +66,7 @@ def register_cli(app):
                 try:
                     insert_feed(domain, rss_url, feed_status.value)
                     feed = get_feed_by_domain(domain)
-                    insert_feed_history(feed['id'], feed['status_id'], descr.value)
+                    insert_feed_history(feed['id'], feed['status_id'], descr.value if descr is not None else None)
                     report['logs'].append({ "domain": domain, "rss_url": rss_url, "logs": "Added" })
                 except sqlite3.IntegrityError:
                     report['logs'].append({ "domain": domain, "rss_url": rss_url, "log": "Duplicated" })
@@ -160,10 +160,26 @@ def register_cli(app):
         """Lists all domains registered on the database"""
         feeds = get_feeds()
         domains_obj = [feed['domain'] for feed in feeds]
+        blocklist = get_blocklist()
+        blocklist_obj = [blocked['domain'] for blocked in blocklist]
+        all_domains =  domains_obj + blocklist_obj
         if output:
             with open(output, "w", encoding='utf-8') as w:
-                for domain in domains_obj:
+                for domain in all_domains:
                     w.write(f"{domain}\n")
         else:
-            for domain in domains_obj:
+            for domain in all_domains:
                 print(domain)
+
+    @app.cli.command("import-blocklist")
+    @click.argument("file_path")
+    def import_blocklist(file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                domain = line.strip()
+                if not domain or domain == "":
+                    continue
+                try:
+                    add_to_blocklist(domain)
+                except sqlite3.IntegrityError:
+                    continue

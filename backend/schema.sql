@@ -59,3 +59,5 @@ CREATE TABLE IF NOT EXISTS blocklist (
     domain TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_blocklist_domain
+    ON blocklist(domain);
