@@ -21,6 +21,9 @@ ADDONS = {}
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
+# Global timeout for all spiders
+DOWNLOAD_TIMEOUT = 30
+
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
