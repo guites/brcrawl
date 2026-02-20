@@ -7,6 +7,10 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 BOT_NAME = "brcrawl"
 
 SPIDER_MODULES = ["brcrawl.spiders"]
@@ -16,7 +20,7 @@ ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "brcrawl (+http://www.yourdomain.com)"
+USER_AGENT = os.environ['USER_AGENT']
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
