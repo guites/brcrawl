@@ -17,3 +17,6 @@ wheels/
 
 .env
 *.sqlite3
+
+runs/*
+!runs/.gitkeep
