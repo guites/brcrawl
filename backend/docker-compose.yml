@@ -30,6 +30,7 @@ services:
       - .env
     volumes:
       - /home/ubuntu/data/brcrawl:/data
+      - /home/ubuntu/brcrawl/runs:/app/runs
 
 networks:
   traefik_proxy:
