@@ -26,7 +26,7 @@ for feed in "$PWD"/feed_part*; do
         continue
     fi
     echo "Processing $feed"
-    cat "$feed" | docker run -v .:/app -i thebigroomxxl/tinyfeed -t feed.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
+    cat "$feed" | docker run --rm -v .:/app -i thebigroomxxl/tinyfeed -t feed.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
 done
 
 # Concatenate all JSON files, sort by publication date (YYYY-MM-DD) descending
