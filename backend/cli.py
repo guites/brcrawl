@@ -3,7 +3,7 @@ import click
 from urllib.parse import urlparse
 import json
 import sqlite3
-from db import add_to_blocklist, insert_feed, insert_feed_history, batch_update_crawled_at, get_blocklist, get_feed_by_domain, get_feed_by_url, get_feeds_most_recent_crawl_date, get_oldest_crawled_feed, update_feed_status, get_feeds
+from db import add_to_blocklist, insert_feed, insert_feed_history, batch_update_crawled_at, get_blocklist, get_feed_by_domain, get_feed_by_url, get_stalest_feeds, get_oldest_crawled_feed, update_feed_status, get_feeds
 import enum
 import pyperclip
 
@@ -143,8 +143,8 @@ def register_cli(app):
     @click.option("--mark-crawled", is_flag=True)
     def crawl_feeds(limit, output, mark_crawled):
         """Lists verified feeds which haven't been crawled for the longest while"""
-        feeds = get_feeds_most_recent_crawl_date(limit)
-        feeds_obj = [{ "id": feed['id'], "domain": feed['domain'], "feed_url": feed['feed_url'], "crawled_at": feed["crawled_at"]} for feed in feeds]
+        feeds = get_stalest_feeds(limit)
+        feeds_obj = [{ "id": feed['id'], "domain": feed['domain'], "feed_url": feed['feed_url'], "crawled_at": feed["last_crawled_at"]} for feed in feeds]
         if not output:
            for feed in feeds_obj:
                print(json.dumps(feed))
