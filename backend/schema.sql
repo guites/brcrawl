@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS feed_status_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     feed_id INTEGER NOT NULL,
     status_id INTEGER NOT NULL,
-    descr TEXT NOT NULL,
+    descr TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (status_id) REFERENCES feed_status(id)
     FOREIGN KEY (feed_id) REFERENCES feeds(id)
