@@ -156,10 +156,17 @@ def register_cli(app):
     @app.cli.command("crawl-feeds")
     @click.option("--limit")
     @click.option("--output")
+    @click.option("--include-crawled", is_flag=True)
     @click.option("--mark-crawled", is_flag=True)
-    def crawl_feeds(limit, output, mark_crawled):
-        """Lists verified feeds which haven't been crawled for the longest while"""
-        feeds = get_stalest_feeds(limit)
+    def crawl_feeds(limit, output, include_crawled, mark_crawled):
+        """Lists stale feeds for crawling.
+
+        --include-crawled is whether the generated list should include feeds with `crawled` status.
+
+        --mark-crawled is whether we should update the feeds crawled_at to the current datetime.
+        """
+        status_ids = [1, 2] if include_crawled else [1]
+        feeds = get_stalest_feeds(limit, status_ids)
         feeds_obj = [{ "id": feed['id'], "domain": feed['domain'], "feed_url": feed['feed_url'], "crawled_at": feed["last_crawled_at"]} for feed in feeds]
         if not output:
            for feed in feeds_obj:

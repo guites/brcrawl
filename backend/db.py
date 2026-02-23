@@ -29,12 +29,22 @@ def get_feed_by_id(feed_id):
 def get_oldest_crawled_feed():
     return query_db("SELECT f.id as id, domain, feed_url, fs.name as feed_status, created_at FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id WHERE f.status_id = 2 ORDER BY created_at ASC", one=True)
 
-def get_stalest_feeds(limit):
-    query = "SELECT f.*, MAX(fc.crawled_at) AS last_crawled_at FROM feeds f LEFT JOIN feed_crawls fc ON f.id = fc.feed_id WHERE f.status_id = 1 GROUP BY f.id ORDER BY last_crawled_at ASC"
-    if limit:
+def get_stalest_feeds(limit, status_ids):
+    status_ids = list(status_ids)
+    placeholders = ",".join("?" for _ in status_ids)
+
+    query = f"""
+        SELECT f.*, MAX(fc.crawled_at) AS last_crawled_at
+        FROM feeds f
+        LEFT JOIN feed_crawls fc ON f.id = fc.feed_id
+        WHERE f.status_id IN ({placeholders})
+        GROUP BY f.id
+        ORDER BY last_crawled_at ASC"""
+    params = status_ids.copy()
+    if limit is not None:
         query += " LIMIT ?"
-        return query_db(query, [limit])
-    return query_db(query)
+        params.append(limit)
+    return query_db(query, params)
 
 def get_blocked_feeds_description():
     return query_db("SELECT f.domain, fs.name, fsh1.descr FROM feeds f INNER JOIN feed_status fs ON f.status_id = fs.id LEFT JOIN feed_status_history fsh1 ON (f.id = fsh1.feed_id ) LEFT OUTER JOIN feed_status_history fsh2 ON (f.id = fsh2.feed_id AND fsh1.created_at < fsh2.created_at) WHERE f.status_id = 4 ORDER BY fsh1.created_at DESC")
