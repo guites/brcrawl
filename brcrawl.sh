@@ -54,7 +54,7 @@ DIR_PATH_SCRAPE=$(pwd)${DIR_PATH#${ROOT_DIR}}
 
 # Generates the seed URLs for crawling
 cd "$BACKEND_DIR"
-run_cmd "uv run flask crawl-feeds --limit 25 --output \"$DIR_PATH/seeds.jsonl\" --mark-crawled"
+run_cmd "uv run flask crawl-feeds --limit 25 --output \"$DIR_PATH/seeds.jsonl\" --include-crawled --mark-crawled"
 
 # Creates the blocklist, composed of known unwanted domains and all
 # domains we have already registered to avoid unnecessary http requests
