@@ -28,6 +28,22 @@ class ShortFeedBlockedDescr(enum.Enum):
     llm = "llm_classifier_false"
 
 def register_cli(app):
+    @app.cli.command("import-feed")
+    @click.option("--domain", prompt=True)
+    @click.option("--feed-url", prompt=True)
+    @click.option("--feed-status", prompt=True, type=click.Choice(ShortFeedStatus, case_sensitive=False))
+    @click.option("--descr", prompt=True, prompt_required=False, type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False))
+    def import_feed(domain, feed_url, feed_status, descr):
+        """Import a single feed from the command line"""
+        try:
+            insert_feed(domain, feed_url, feed_status.value)
+        except sqlite3.IntegrityError:
+            print("Domain or feed url already registered.")
+            return
+        feed = get_feed_by_domain(domain)
+        insert_feed_history(feed['id'], feed['status_id'], descr.value if descr is not None else None)
+        print(f"Feed for <<{feed['domain']}>> registered as <<{feed['feed_status']}>>")
+
     @app.cli.command("import-feeds")
     @click.argument("file_path")
     @click.option("--feed-status", required=True, type=click.Choice(FeedStatus, case_sensitive=False))
