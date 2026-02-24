@@ -27,6 +27,17 @@ for feed in "$PWD"/feed_part*; do
     fi
     echo "Processing $feed"
     cat "$feed" | docker run --rm -v .:/app -i thebigroomxxl/tinyfeed -t feed.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
+    if ! jq . "$feed.json" > /dev/null 2>&1; then
+        echo "Invalid json: <$feed.json>";
+        rm "$feed.json"
+        echo "Attempting modified template"
+        cat "$feed" | docker run --rm -v .:/app -i thebigroomxxl/tinyfeed -t feed_mod.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
+        sed -i 's/&#34;/"/g' "$feed.json"
+        if ! jq . "$feed.json" > /dev/null 2>&1; then
+            echo "Couldn't fix: <$feed.json>. Deleting.";
+            rm "$feed.json"
+        fi
+    fi
 done
 
 # Concatenate all JSON files, sort by publication date (YYYY-MM-DD) descending
