@@ -21,8 +21,8 @@ DEEPSEEK_API_KEY = os.environ['DEEPSEEK_API_KEY']
 class Website(BaseModel):
     personal_blog: bool
 
-class LLMClassifierSpider(scrapy.Spider):
-    name = "llm_classifier"
+class LLMClassifierTruncateSpider(scrapy.Spider):
+    name = "llm_classifier_truncate"
 
     async def start(self):
         self.urls_file = getattr(self, "urls_file", None)
