@@ -131,7 +131,10 @@ def register_cli(app):
         print(f"feed_url: {feed_obj['feed_url']}")
         print(f"feed_status: {feed_obj['feed_status']}")
         print(f"created_at: {feed_obj['created_at']}")
-        pyperclip.copy(feed_obj['domain'])
+        try:
+            pyperclip.copy(feed_obj['domain'])
+        except pyperclip.PyperclipException:
+            print("Couldn't copy feed_url to clipboard. See https://pyperclip.readthedocs.io/en/latest/index.html#not-implemented-error.")
 
     @app.cli.command("update-feed")
     @click.option("--domain", prompt=True)
