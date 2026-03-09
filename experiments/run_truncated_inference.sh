@@ -1,7 +1,11 @@
 #!/bin/bash
-# We are testing whether truncating the home page of websites being sent to the llm for zero shot classification has a meaningful impact on page classification (personal blog true/false).
+# We are testing whether truncating the home page of websites being sent to the llm for zero shot classification
+# has a meaningful impact on page classification (personal blog true/false).
 #
-# Since we have the classification results from sending the full page text saved to llm_classifier_true.jsonl 
+# Since we have the classification results from sending the full page text saved to llm_classifier.jsonl,
+# this script adds a new key to the .jsonl objects in the format `"personal_blog_1000": false`.
+# we can then use the personal_blog and personal_blog_1000 keys to derivate classification metrics
+
 set -e
 set -u
 
@@ -13,7 +17,7 @@ declare -i PROCESSED_FILES=0
 PROCESSED_FILES_NAMES=()
 
 if [ ! "$#" -eq 2 ]; then
-    echo "Usage: ./llm_truncate.sh <page_size_limit> <number_of_runs>";
+    echo "Usage: ./run_truncated_inference.sh <page_size_limit> <number_of_runs>";
     echo "  <page_size_limit> is how many characters from the page we send to the LLM"
     echo "  <number_of_runs> is how many llm_classifier.jsonl files we should process"
     exit 1
@@ -34,7 +38,7 @@ echo "Will run $NUMBER_RUNS time(s)."
 shopt -s globstar
 
 for dir in "$RUNS_DIR"/**/; do
-    if [ "$PROCESSED_FILES" -gt "$NUMBER_RUNS" ]; then
+    if [ "$PROCESSED_FILES" -ge "$NUMBER_RUNS" ]; then
         echo "Finished running $NUMBER_RUNS times."
         exit 0
     fi

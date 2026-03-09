@@ -45,10 +45,11 @@ jq -c '. | select(.lang == "pt")' "$1/lang_detect.jsonl" > "$1/lang_detect_pt.js
 jq -c '. | select(.lang != "pt")' "$1/lang_detect.jsonl" > "$1/lang_detect_other.jsonl"
 
 # 7. Query LLM (DeepSeek) on whether it's a personal blog or not
+# use spider that truncates page size to 1000 characters
 # currently we have a very rough prompt that excludes small publications,
 # orgs and other blogs that would be welcome to our index
-"$UV" run scrapy crawl llm_classifier -a urls_file="$1/lang_detect_pt.jsonl" -o "$1/llm_classifier.jsonl"
+"$UV" run scrapy crawl llm_classifier_truncate -a urls_file="$1/lang_detect_pt.jsonl" -a truncate_text="1000" -o "$1/llm_classifier.jsonl"
 
 # 8. Split based on LLM decision
-jq -c '. | select(.personal_blog==true)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_true.jsonl"
-jq -c '. | select(.personal_blog==false)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_false.jsonl"
+jq -c '. | select(.personal_blog_1000==true)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_true.jsonl"
+jq -c '. | select(.personal_blog_1000==false)' "$1/llm_classifier.jsonl" > "$1/llm_classifier_false.jsonl"

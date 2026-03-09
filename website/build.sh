@@ -27,6 +27,7 @@ for feed in "$PWD"/feed_part*; do
     fi
     echo "Processing $feed"
     cat "$feed" | docker run --rm -v .:/app -i thebigroomxxl/tinyfeed -t feed.json.tmpl -L 1 -r 4 > "$feed.json" 2>> warnings.log
+    sleep 0.5
     if ! jq . "$feed.json" > /dev/null 2>&1; then
         echo "Invalid json: <$feed.json>";
         rm "$feed.json"
