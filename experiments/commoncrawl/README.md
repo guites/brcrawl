@@ -89,3 +89,5 @@ A run over 9 crawls (from 2025-26 to 2026-04) resulted in 1108 domains that fit 
 ## Limitations / next steps
 
 Usage of the Common Crawl API is restricted by a rather severe rate limit, and even curls default exponential backoff isn't enough to prevent getting temporarily banned. A more exaustive research would involve downloading the CC dataset from S3 as shards, which I considered infeasible given my current setup.
+
+Another problem is that multiple blogs are not hosted at the root github subdomain. For example `user.github.io` may return a 404 but there could still be a blog at `user.github.io/myblog`. The current implementation considers only "top level" blogs.
