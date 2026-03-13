@@ -89,3 +89,14 @@ CREATE TABLE IF NOT EXISTS feed_items (
 -- TODO: (feed_items references feeds and vice-versa)
 ALTER TABLE feeds ADD COLUMN last_feed_item_id INTEGER;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_last_feed_item_id ON feeds(last_feed_item_id);
+
+-- feed_processing_status table
+CREATE TABLE IF NOT EXISTS feed_processing_status (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE
+);
+
+INSERT INTO feed_processing_status (name) VALUES ('active'), ('paused');
+
+-- saves feed processing status on feeds table
+ALTER TABLE feeds ADD COLUMN processing_status_id DEFAULT 1;

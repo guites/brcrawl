@@ -4,10 +4,17 @@ from db import (
     mark_feed_checked,
     get_id_from_guid,
     update_feed_latest,
+    pause_feed_processing,
 )
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
+
+
+def status_nok(feed):
+    """feedparser uses requests lib under the hood, so we can
+    mimic its behaviour. see requests/src/requests/models.py:Requests::ok"""
+    return feed.status >= 400
 
 
 def get_feed_title(feed):
@@ -86,9 +93,21 @@ class FeedProcessor:
         )
         mark_feed_checked(feed["id"])
         parsed = feedparser.parse(feed["feed_url"])
+
+        # Check for bozo first as requests that are unable to complete
+        # have no status information. see feedparser/http.py::get
         if parsed.bozo == 1:
-            print(f"[ERROR] Malformed feed. Skipping: <{parsed.bozo_exception}>")
+            print(
+                f"[ERROR] Malformed feed or incomplete request: {parsed.bozo_exception}"
+            )
+            pause_feed_processing(feed["id"])
             return
+
+        if status_nok(parsed):
+            print(f"[ERROR] Couldn't download feed: {parsed.status}")
+            pause_feed_processing(feed["id"])
+            return
+
         feed_title = get_feed_title(parsed.feed)
         print(f"[INFO] Feed title: {feed_title}")
         print(f"[INFO] Feed items: {len(parsed.entries)}")

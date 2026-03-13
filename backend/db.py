@@ -147,7 +147,7 @@ def add_to_blocklist(domain):
 def get_feeds_for_processing(num_feeds, last_process_interval):
     cutoff = datetime.utcnow() - timedelta(minutes=last_process_interval)
     return query_db(
-        "SELECT * FROM feeds WHERE (last_checked_at IS NULL OR last_checked_at <= ?) ORDER BY COALESCE(last_checked_at, '1970-01-01 00:00:00') AND status_id IN (1, 2) ASC LIMIT ?",
+        "SELECT * FROM feeds WHERE (last_checked_at IS NULL OR last_checked_at <= ?) ORDER BY COALESCE(last_checked_at, '1970-01-01 00:00:00') AND status_id IN (1, 2) AND processing_status_id = 1 ASC LIMIT ?",
         [cutoff, num_feeds],
     )
 
@@ -195,4 +195,10 @@ def update_feed_latest(feed_id, last_post_guid, last_feed_item_id):
         "UPDATE feeds SET last_feed_item_id = ?, last_post_guid = ? WHERE id = ?",
         [last_feed_item_id, last_post_guid, feed_id],
     )
+    con.commit()
+
+
+def pause_feed_processing(feed_id):
+    con = get_db()
+    con.execute("UPDATE feeds SET processing_status_id = 2 WHERE id = ?", [feed_id])
     con.commit()
