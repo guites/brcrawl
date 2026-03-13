@@ -98,7 +98,11 @@ class FeedProcessor:
             "INFO",
         )
         mark_feed_checked(feed["id"])
-        parsed = feedparser.parse(feed["feed_url"])
+        try:
+            parsed = feedparser.parse(feed["feed_url"])
+        except Exception as e:
+            log(f"Unhandled feedparser exception: {e}", "ERROR")
+            return
 
         # Check for bozo first as requests that are unable to complete
         # have no status information. see feedparser/http.py::get
@@ -147,7 +151,7 @@ class FeedProcessor:
 
             # if we find the latest registered guid, it means
             # from here on entries were already processed
-            if feed['last_post_guid'] == entry_guid:
+            if feed["last_post_guid"] == entry_guid:
                 break
 
             if latest_guid is None:
