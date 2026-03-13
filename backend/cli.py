@@ -3,10 +3,23 @@ import click
 from urllib.parse import urlparse
 import json
 import sqlite3
-from db import add_to_blocklist, insert_feed, insert_feed_history, batch_update_crawled_at, get_blocklist, get_feed_by_domain, get_feed_by_url, get_stalest_feeds, get_oldest_crawled_feed, update_feed_status, get_feeds
+from db import (
+    add_to_blocklist,
+    insert_feed,
+    insert_feed_history,
+    batch_update_crawled_at,
+    get_blocklist,
+    get_feed_by_domain,
+    get_feed_by_url,
+    get_stalest_feeds,
+    get_oldest_crawled_feed,
+    update_feed_status,
+    get_feeds,
+)
 import enum
 import pyperclip
 from feed_processor import FeedProcessor
+
 
 class FeedStatus(enum.Enum):
     VERIFIED = 1
@@ -14,26 +27,39 @@ class FeedStatus(enum.Enum):
     SUGGESTED = 3
     BLOCKED = 4
 
+
 class ShortFeedStatus(enum.Enum):
     V = 1
     C = 2
     S = 3
     B = 4
 
+
 class FeedBlockedDescr(enum.Enum):
     lang_detect_other = "lang_detect_other"
     llm_classifier_false = "llm_classifier_false"
+
 
 class ShortFeedBlockedDescr(enum.Enum):
     lang = "lang_detect_other"
     llm = "llm_classifier_false"
 
+
 def register_cli(app):
     @app.cli.command("import-feed")
     @click.option("--domain", prompt=True)
     @click.option("--feed-url", prompt=True)
-    @click.option("--feed-status", prompt=True, type=click.Choice(ShortFeedStatus, case_sensitive=False))
-    @click.option("--descr", prompt=True, prompt_required=False, type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False))
+    @click.option(
+        "--feed-status",
+        prompt=True,
+        type=click.Choice(ShortFeedStatus, case_sensitive=False),
+    )
+    @click.option(
+        "--descr",
+        prompt=True,
+        prompt_required=False,
+        type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False),
+    )
     def import_feed(domain, feed_url, feed_status, descr):
         """Import a single feed from the command line"""
         try:
@@ -42,15 +68,27 @@ def register_cli(app):
             print("Domain or feed url already registered.")
             return
         feed = get_feed_by_domain(domain)
-        insert_feed_history(feed['id'], feed['status_id'], descr.value if descr is not None else None)
+        insert_feed_history(
+            feed["id"], feed["status_id"], descr.value if descr is not None else None
+        )
         print(f"Feed for <<{feed['domain']}>> registered as <<{feed['feed_status']}>>")
 
     @app.cli.command("import-feeds")
     @click.argument("file_path")
-    @click.option("--feed-status", required=True, type=click.Choice(FeedStatus, case_sensitive=False))
-    @click.option("--descr", required=False, type=click.Choice(FeedBlockedDescr, case_sensitive=False))
+    @click.option(
+        "--feed-status",
+        required=True,
+        type=click.Choice(FeedStatus, case_sensitive=False),
+    )
+    @click.option(
+        "--descr",
+        required=False,
+        type=click.Choice(FeedBlockedDescr, case_sensitive=False),
+    )
     @click.option("--output")
-    def import_feeds(file_path, feed_status: FeedStatus, output, descr: FeedBlockedDescr):
+    def import_feeds(
+        file_path, feed_status: FeedStatus, output, descr: FeedBlockedDescr
+    ):
         """Import feeds from a .jsonl file.
 
         {"domain":"example.com", "rss_url":"https://example.com/feed"}
@@ -62,34 +100,54 @@ def register_cli(app):
         if feed_status.value == FeedStatus.BLOCKED and descr is None:
             raise click.UsageError("--descr is required when --feed-status is BLOCKED")
 
-        report = { "errors": [], "logs": [] }
+        report = {"errors": [], "logs": []}
         with jsonlines.open(file_path) as reader:
             for obj in reader:
                 domain = obj.get("domain")
                 rss_url = obj.get("rss_url")
                 if rss_url is None:
-                    report['errors'].append({ "domain": domain, "rss_url": rss_url, "error": "missing rss_url" })
+                    report["errors"].append(
+                        {
+                            "domain": domain,
+                            "rss_url": rss_url,
+                            "error": "missing rss_url",
+                        }
+                    )
                     continue
 
                 if domain is None:
                     domain = urlparse(rss_url).netloc
 
-                if domain == '':
-                    report['errors'].append({ "domain": domain, "rss_url": rss_url, "error": "improper rss_url (probably missing scheme)" })
+                if domain == "":
+                    report["errors"].append(
+                        {
+                            "domain": domain,
+                            "rss_url": rss_url,
+                            "error": "improper rss_url (probably missing scheme)",
+                        }
+                    )
                     continue
 
                 # deduplicate the feed url by removing trailing slashes
-                rss_url = rss_url.rstrip('/')
+                rss_url = rss_url.rstrip("/")
                 try:
                     insert_feed(domain, rss_url, feed_status.value)
                     feed = get_feed_by_domain(domain)
-                    insert_feed_history(feed['id'], feed['status_id'], descr.value if descr is not None else None)
-                    report['logs'].append({ "domain": domain, "rss_url": rss_url, "logs": "Added" })
+                    insert_feed_history(
+                        feed["id"],
+                        feed["status_id"],
+                        descr.value if descr is not None else None,
+                    )
+                    report["logs"].append(
+                        {"domain": domain, "rss_url": rss_url, "logs": "Added"}
+                    )
                 except sqlite3.IntegrityError:
-                    report['logs'].append({ "domain": domain, "rss_url": rss_url, "log": "Duplicated" })
+                    report["logs"].append(
+                        {"domain": domain, "rss_url": rss_url, "log": "Duplicated"}
+                    )
                     continue
         if output:
-            with open(output, "w", encoding='utf-8') as w:
+            with open(output, "w", encoding="utf-8") as w:
                 json.dump(report, w, indent=2)
         else:
             print(json.dumps(report, indent=2))
@@ -133,28 +191,38 @@ def register_cli(app):
         print(f"feed_status: {feed_obj['feed_status']}")
         print(f"created_at: {feed_obj['created_at']}")
         try:
-            pyperclip.copy(feed_obj['domain'])
+            pyperclip.copy(feed_obj["domain"])
         except pyperclip.PyperclipException:
-            print("Couldn't copy feed_url to clipboard. See https://pyperclip.readthedocs.io/en/latest/index.html#not-implemented-error.")
+            print(
+                "Couldn't copy feed_url to clipboard. See https://pyperclip.readthedocs.io/en/latest/index.html#not-implemented-error."
+            )
 
     @app.cli.command("update-feed")
     @click.option("--domain", prompt=True)
-    @click.option("--feed-status", prompt=True, type=click.Choice(ShortFeedStatus, case_sensitive=False))
-    @click.option("--descr", prompt=True, type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False))
+    @click.option(
+        "--feed-status",
+        prompt=True,
+        type=click.Choice(ShortFeedStatus, case_sensitive=False),
+    )
+    @click.option(
+        "--descr",
+        prompt=True,
+        type=click.Choice(ShortFeedBlockedDescr, case_sensitive=False),
+    )
     def update_feed(domain, feed_status, descr):
         """Updates given feed status.
 
         If either domain or feed_status are not provided,
         user is prompted for the values."""
         feed_obj = get_feed_by_domain(domain)
-        old_status = feed_obj['feed_status']
+        old_status = feed_obj["feed_status"]
         if not feed_obj:
             print("Feed not found.")
             return
-        update_feed_status(feed_obj['id'], feed_status.value)
+        update_feed_status(feed_obj["id"], feed_status.value)
         feed_obj = get_feed_by_domain(domain)
-        new_status = feed_obj['feed_status']
-        insert_feed_history(feed_obj['id'], feed_obj['status_id'], descr)
+        new_status = feed_obj["feed_status"]
+        insert_feed_history(feed_obj["id"], feed_obj["status_id"], descr)
         print(f"Updated {domain} from {old_status} to {new_status}")
 
     @app.cli.command("crawl-feeds")
@@ -171,27 +239,35 @@ def register_cli(app):
         """
         status_ids = [1, 2] if include_crawled else [1]
         feeds = get_stalest_feeds(limit, status_ids)
-        feeds_obj = [{ "id": feed['id'], "domain": feed['domain'], "feed_url": feed['feed_url'], "crawled_at": feed["last_crawled_at"]} for feed in feeds]
+        feeds_obj = [
+            {
+                "id": feed["id"],
+                "domain": feed["domain"],
+                "feed_url": feed["feed_url"],
+                "crawled_at": feed["last_crawled_at"],
+            }
+            for feed in feeds
+        ]
         if not output:
-           for feed in feeds_obj:
-               print(json.dumps(feed))
+            for feed in feeds_obj:
+                print(json.dumps(feed))
         if output:
             with jsonlines.open(output, "w") as writer:
                 writer.write_all(feeds_obj)
         if mark_crawled:
-            batch_update_crawled_at([ (feed['id'], ) for feed in feeds ])
+            batch_update_crawled_at([(feed["id"],) for feed in feeds])
 
     @app.cli.command("known-domains")
     @click.option("--output")
     def known_domains(output):
         """Lists all domains registered on the database"""
         feeds = get_feeds()
-        domains_obj = [feed['domain'] for feed in feeds]
+        domains_obj = [feed["domain"] for feed in feeds]
         blocklist = get_blocklist()
-        blocklist_obj = [blocked['domain'] for blocked in blocklist]
-        all_domains =  domains_obj + blocklist_obj
+        blocklist_obj = [blocked["domain"] for blocked in blocklist]
+        all_domains = domains_obj + blocklist_obj
         if output:
-            with open(output, "w", encoding='utf-8') as w:
+            with open(output, "w", encoding="utf-8") as w:
                 for domain in all_domains:
                     w.write(f"{domain}\n")
         else:
@@ -201,7 +277,7 @@ def register_cli(app):
     @app.cli.command("import-blocklist")
     @click.argument("file_path")
     def import_blocklist(file_path):
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 domain = line.strip()
                 if not domain or domain == "":
