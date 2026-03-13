@@ -152,12 +152,23 @@ def get_feeds_for_processing(num_feeds, last_process_interval):
     )
 
 
-def insert_feed_item(feed_id, feed_item):
-    entry_date = datetime(*feed_item.published_parsed[:6]).isoformat()
-    entry_guid = feed_item.id if "id" in feed_item else feed_item.link
+def insert_feed_item(
+    feed_id, entry_title, entry_url, entry_guid, entry_date, entry_author, entry_content
+):
 
     con = get_db()
-    con.execute("INSERT INTO feed_items (feed_id, title, url, guid, published_at) VALUES (?, ?, ?, ?, ?)", [feed_id, feed_item.title, feed_item.link, entry_guid, entry_date])
+    con.execute(
+        "INSERT INTO feed_items (feed_id, title, url, guid, published_at, author, content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            feed_id,
+            entry_title,
+            entry_url,
+            entry_guid,
+            entry_date,
+            entry_author,
+            entry_content,
+        ],
+    )
     con.commit()
 
 

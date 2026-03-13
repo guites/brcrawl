@@ -1,8 +1,68 @@
-from db import get_feeds_for_processing, insert_feed_item, mark_feed_checked, get_id_from_guid, update_feed_latest
+from db import (
+    get_feeds_for_processing,
+    insert_feed_item,
+    mark_feed_checked,
+    get_id_from_guid,
+    update_feed_latest,
+)
 import feedparser
+from datetime import datetime
+from bs4 import BeautifulSoup
+
+
+def get_feed_title(feed):
+    return feed.title if "title" in feed else "untitled"
+
+
+def get_entry_title(entry):
+    return entry.title if "title" in entry else "untitled"
+
+
+def get_entry_url(entry):
+    return entry.link if "link" in entry else None
+
+
+def get_entry_guid(entry):
+    return entry.id if "id" in entry else entry.link
+
+
+def get_entry_date(entry):
+    if "published_parsed" not in entry:
+        return None
+    return datetime(*entry.published_parsed[:6]).isoformat()
+
+
+def get_entry_author(entry):
+    return entry.author if "author" in entry else ""
+
+
+def get_entry_content(entry):
+    if "content" not in entry:
+        return ""
+    if len(entry.content) <= 0:
+        return ""
+    if "value" not in entry.content[0]:
+        return ""
+    return entry.content[0].value.strip()
+
+
+def clean_content(html_content):
+    """
+    From https://www.alexmolas.com/2024/02/05/a-search-engine-in-80-lines.html
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+    for script in soup(["script", "style"]):
+        script.extract()
+    text = soup.get_text()
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    cleaned_text = " ".join(chunk for chunk in chunks if chunk)
+    return cleaned_text
+
 
 class FeedProcessor:
     """Adapted from github.com/manualdousuario/lerama and git.sr.ht/~lown/openorb"""
+
     def __init__(self):
         self.num_feeds = 25
         self.min_process_interval = 120
@@ -18,37 +78,63 @@ class FeedProcessor:
 
         # TODO: this could be done in parallel
         for feed in feeds:
-            print(f"[INFO] Processing {feed['feed_url']}, last checked: {feed['last_checked_at']}")
             self.process(feed)
 
     def process(self, feed):
-        mark_feed_checked(feed['id'])
-        parsed = feedparser.parse(feed['feed_url'])
+        print(
+            f"[INFO] Processing {feed['feed_url']}, last checked: {feed['last_checked_at']}"
+        )
+        mark_feed_checked(feed["id"])
+        parsed = feedparser.parse(feed["feed_url"])
         if parsed.bozo == 1:
             print(f"[ERROR] Malformed feed. Skipping: <{parsed.bozo_exception}>")
             return
-        feed_title = parsed.feed.title if "title" in parsed.feed else "(no title found)"
+        feed_title = get_feed_title(parsed.feed)
         print(f"[INFO] Feed title: {feed_title}")
         print(f"[INFO] Feed items: {len(parsed.entries)}")
         latest_guid = None
+
         if len(parsed.entries) <= 0:
             print("    [ERROR] Skipping feed. No feed items found.")
             return
 
         for entry in parsed.entries:
-            if "published_parsed" not in entry:
-                print(f"    [ERROR] Skipping <{entry.link}> - no publication date.")
+            entry_title = get_entry_title(entry)
+            entry_url = get_entry_url(entry)
+            entry_guid = get_entry_guid(entry)
+            entry_date = get_entry_date(entry)
+
+            entry_author = get_entry_author(entry)
+            entry_content = get_entry_content(entry)
+
+            if len(entry_content) != 0:
+                entry_content = clean_content(entry_content)
+            # TODO: if the entry content lenght is zero we could try
+            # TODO: to download it from the entry_url
+
+            if not entry_date or not entry_url:
+                print(
+                    f"    [ERROR] Skipping {entry_url} ({entry_date}). Invalid link or publication date."
+                )
                 continue
 
             if latest_guid is None:
-                latest_guid = entry.id if "id" in entry else entry.link
+                latest_guid = entry_guid
 
-            print(f"    [INFO] <{entry.link} on {entry.published}")
-            insert_feed_item(feed['id'], entry)
+            print(f"    [INFO] {entry_url} ({entry_date})")
+            insert_feed_item(
+                feed["id"],
+                entry_title,
+                entry_url,
+                entry_guid,
+                entry_date,
+                entry_author,
+                entry_content,
+            )
 
         if latest_guid is None:
             print("    [ERROR] latest_guid wasn't set.")
             return
 
-        latest_feed_item_id = get_id_from_guid(feed['id'], latest_guid)
-        update_feed_latest(feed['id'], latest_guid, latest_feed_item_id)
+        latest_feed_item_id = get_id_from_guid(feed["id"], latest_guid)
+        update_feed_latest(feed["id"], latest_guid, latest_feed_item_id)
