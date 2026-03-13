@@ -18,14 +18,17 @@ WORKDIR /app
 # ---- Copy dependency files first (better caching) ----
 COPY pyproject.toml uv.lock* ./
 
+# ---- Change ownership to application user
+RUN chown -R appuser:appgroup /app
+
+# ---- Switch to non-root user ----
+USER appuser
+
 # ---- Install dependencies (no dev dependencies) ----
 RUN uv sync --frozen --no-dev
 
 # ---- Copy project files ----
 COPY . .
-
-# ---- Switch to non-root user ----
-USER appuser
 
 # ---- Expose internal port ----
 EXPOSE 8000
