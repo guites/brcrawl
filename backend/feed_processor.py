@@ -67,6 +67,11 @@ def clean_content(html_content):
     return cleaned_text
 
 
+def log(msg, level):
+    dt = datetime.now().isoformat()[:-7]
+    print(f"[{level}] [{dt}] {msg}")
+
+
 class FeedProcessor:
     """Adapted from github.com/manualdousuario/lerama and git.sr.ht/~lown/openorb"""
 
@@ -79,17 +84,18 @@ class FeedProcessor:
 
         total_feeds = len(feeds)
         if total_feeds == 0:
-            print("[INFO] No feeds for processing")
+            log("No feeds for processing", "INFO")
             return
-        print(f"[INFO] Found {total_feeds} feeds for processing")
+        log(f"Found {total_feeds} feeds for processing", "INFO")
 
         # TODO: this could be done in parallel
         for feed in feeds:
             self.process(feed)
 
     def process(self, feed):
-        print(
-            f"[INFO] Processing {feed['feed_url']}, last checked: {feed['last_checked_at']}"
+        log(
+            f"Processing {feed['feed_url']}, last checked: {feed['last_checked_at']}",
+            "INFO",
         )
         mark_feed_checked(feed["id"])
         parsed = feedparser.parse(feed["feed_url"])
@@ -97,24 +103,25 @@ class FeedProcessor:
         # Check for bozo first as requests that are unable to complete
         # have no status information. see feedparser/http.py::get
         if parsed.bozo == 1:
-            print(
-                f"[ERROR] Malformed feed or incomplete request: {parsed.bozo_exception}"
+            log(
+                f"Malformed feed or incomplete request: {parsed.bozo_exception}",
+                "ERROR",
             )
             pause_feed_processing(feed["id"])
             return
 
         if status_nok(parsed):
-            print(f"[ERROR] Couldn't download feed: {parsed.status}")
+            log(f"Couldn't download feed: {parsed.status}", "ERROR")
             pause_feed_processing(feed["id"])
             return
 
         feed_title = get_feed_title(parsed.feed)
-        print(f"[INFO] Feed title: {feed_title}")
-        print(f"[INFO] Feed items: {len(parsed.entries)}")
+        log(f"Feed title: {feed_title}", "INFO")
+        log(f"Feed items: {len(parsed.entries)}", "INFO")
         latest_guid = None
 
         if len(parsed.entries) <= 0:
-            print("    [ERROR] Skipping feed. No feed items found.")
+            log("    Skipping feed. No feed items found.", "ERROR")
             return
 
         for entry in parsed.entries:
@@ -132,15 +139,16 @@ class FeedProcessor:
             # TODO: to download it from the entry_url
 
             if not entry_date or not entry_url:
-                print(
-                    f"    [ERROR] Skipping {entry_url} ({entry_date}). Invalid link or publication date."
+                log(
+                    f"    Skipping {entry_url} ({entry_date}). Invalid link or publication date.",
+                    "ERROR",
                 )
                 continue
 
             if latest_guid is None:
                 latest_guid = entry_guid
 
-            print(f"    [INFO] {entry_url} ({entry_date})")
+            log(f"    {entry_url} ({entry_date})", "INFO")
             insert_feed_item(
                 feed["id"],
                 entry_title,
@@ -152,7 +160,7 @@ class FeedProcessor:
             )
 
         if latest_guid is None:
-            print("    [ERROR] latest_guid wasn't set.")
+            log("    latest_guid wasn't set.", "ERROR")
             return
 
         latest_feed_item_id = get_id_from_guid(feed["id"], latest_guid)
