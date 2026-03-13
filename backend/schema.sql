@@ -61,3 +61,31 @@ CREATE TABLE IF NOT EXISTS blocklist (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_blocklist_domain
     ON blocklist(domain);
+
+-- track when feed was last checked for new posts
+ALTER TABLE feeds ADD COLUMN last_checked_at DATETIME;
+
+-- save the last added post guid from each feed to prevent reindexing known posts
+ALTER TABLE feeds ADD COLUMN last_post_guid VARCHAR;
+
+-- feed_items table, tracks individual post information
+CREATE TABLE IF NOT EXISTS feed_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    feed_id INTEGER NOT NULL,
+    title VARCHAR NOT NULL,
+    author VARCHAR,
+    content TEXT,
+    url VARCHAR NOT NULL,
+    guid INTEGER NOT NULL,
+    published_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (feed_id, guid),
+    FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+);
+
+-- save last feed_item id for quick access
+-- TODO: this should be a foreign key but sqlite3 requires dropping existing
+-- TODO: tables and creating a new one, so we got kind of a chicken and egg problem here
+-- TODO: (feed_items references feeds and vice-versa)
+ALTER TABLE feeds ADD COLUMN last_feed_item_id INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_last_feed_item_id ON feeds(last_feed_item_id);

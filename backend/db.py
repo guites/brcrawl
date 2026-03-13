@@ -1,6 +1,8 @@
 from flask import g
 import sqlite3
 import os
+from datetime import datetime, timedelta
+
 DATABASE = os.environ['DATABASE']
 
 
@@ -91,4 +93,33 @@ def get_blocklist():
 def add_to_blocklist(domain):
     con = get_db()
     con.execute("INSERT INTO blocklist (domain) VALUES (?)", [domain])
+    con.commit()
+
+def get_feeds_for_processing(num_feeds, last_process_interval):
+    cutoff = datetime.utcnow() - timedelta(minutes=last_process_interval)
+    return query_db("SELECT * FROM feeds WHERE (last_checked_at IS NULL OR last_checked_at <= ?) ORDER BY COALESCE(last_checked_at, '1970-01-01 00:00:00') AND status_id IN (1, 2) ASC LIMIT ?", [cutoff, num_feeds])
+
+def insert_feed_item(feed_id, feed_item):
+    entry_date = datetime(*feed_item.published_parsed[:6]).isoformat()
+    entry_guid = feed_item.id if "id" in feed_item else feed_item.link
+
+    con = get_db()
+    con.execute("INSERT INTO feed_items (feed_id, title, url, guid, published_at) VALUES (?, ?, ?, ?, ?)", [feed_id, feed_item.title, feed_item.link, entry_guid, entry_date])
+    con.commit()
+
+def mark_feed_checked(feed_id):
+    con = get_db()
+    con.execute("UPDATE feeds SET last_checked_at = DATETIME('now') WHERE id = ?", [feed_id])
+    con.commit()
+
+def get_id_from_guid(feed_id, feed_item_guid):
+    res = query_db("SELECT id FROM feed_items WHERE feed_id = ? AND guid = ? ORDER BY id DESC LIMIT 1",
+                args=[feed_id, feed_item_guid],
+                one=True
+            )
+    return res['id']
+
+def update_feed_latest(feed_id, last_post_guid, last_feed_item_id):
+    con = get_db()
+    con.execute("UPDATE feeds SET last_feed_item_id = ?, last_post_guid = ? WHERE id = ?", [last_feed_item_id, last_post_guid, feed_id])
     con.commit()

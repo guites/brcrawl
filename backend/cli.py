@@ -6,6 +6,7 @@ import sqlite3
 from db import add_to_blocklist, insert_feed, insert_feed_history, batch_update_crawled_at, get_blocklist, get_feed_by_domain, get_feed_by_url, get_stalest_feeds, get_oldest_crawled_feed, update_feed_status, get_feeds
 import enum
 import pyperclip
+from feed_processor import FeedProcessor
 
 class FeedStatus(enum.Enum):
     VERIFIED = 1
@@ -209,3 +210,9 @@ def register_cli(app):
                     add_to_blocklist(domain)
                 except sqlite3.IntegrityError:
                     continue
+
+    @app.cli.command("process-feeds")
+    def process_feeds():
+        """Gets latest posts from feeds registered to the database"""
+        processor = FeedProcessor()
+        processor.run()

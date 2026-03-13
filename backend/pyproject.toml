@@ -5,10 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "feedparser>=6.0.12",
     "flask>=3.1.2",
     "flask-cors>=6.0.2",
     "gunicorn>=25.0.3",
     "jsonlines>=4.0.0",
     "pyperclip>=1.11.0",
     "python-dotenv>=1.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.6",
 ]
