@@ -145,6 +145,11 @@ class FeedProcessor:
                 )
                 continue
 
+            # if we find the latest registered guid, it means
+            # from here on entries were already processed
+            if feed['last_post_guid'] == entry_guid:
+                break
+
             if latest_guid is None:
                 latest_guid = entry_guid
 
