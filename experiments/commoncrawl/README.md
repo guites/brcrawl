@@ -12,7 +12,7 @@ $ jq --raw-output ".[] | .id" collinfo.json | wc -l
 121
 ```
 
-There are 121 crawls! Let's check how many pages they have for our *.github.io filter:
+There are 121 crawls! Let's check how many pages they have for our `*.github.io` filter:
 
 ```
 $ curl "https://index.commoncrawl.org/CC-MAIN-2025-21-index?url=*.github.io&showNumPages=true"
@@ -74,7 +74,7 @@ ail-mo-leti-cep.github.io
 aiqingdd.github.io
 aiyumi.github.io
 alexandrehtrb.github.io
-``` 
+```
 
 A much smaller result set (as expected) but still something that can grow to a noticiable size given the amount of pages and crawls (121 crawls * 30 pages * 14 unique domains ≈ 50k websites!).
 
@@ -89,3 +89,7 @@ A run over 9 crawls (from 2025-26 to 2026-04) resulted in 1108 domains that fit 
 ## Limitations / next steps
 
 Usage of the Common Crawl API is restricted by a rather severe rate limit, and even curls default exponential backoff isn't enough to prevent getting temporarily banned. A more exaustive research would involve downloading the CC dataset from S3 as shards, which I considered infeasible given my current setup.
+
+Another problem is that multiple blogs are not hosted at the root github subdomain. For example `user.github.io` may return a 404 but there could still be a blog at `user.github.io/myblog`. The current implementation considers only "top level" blogs.
+
+One way this could be extended is by searching the CC dataset for other subdomains used by indieweb bloggers such as `*.codeberg.pages`, sourcehut hosted blogs, etc.
