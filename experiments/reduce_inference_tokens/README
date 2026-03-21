@@ -1,0 +1,3 @@
+# Reduce inference tokens
+
+A set of scripts to understand whether runcating the amount of characterssent from each website home page to the LLM for classification impacts the prompt result.
