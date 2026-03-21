@@ -4,31 +4,34 @@ I swear I'll do a better write up sometime soon.
 
 ## Adding new URLs from a list
 
-Duplicated feeds are ignored. Domains that block scrapping via robots.txt will be skipped.
+Duplicated feeds are ignored. Domains that block scrapping via robots.txt
+will be skipped.
 
 ## If it's a list of urls
 
 Any page will work, doesn't need to be the home.
 
-Use the `ExternalUrlsSpider` crawler. The output will be a .jsonl file with `rss_url` and `domain` of each website listed.
+Use the `ExternalUrlsSpider` crawler. The output will be a .jsonl file with
+`rss_url` and `domain` of each website listed.
 
-```
+```bash
 # on the scraper/ directory
 uv run scrapy crawl rss -a urls_file=urls.txt -o rss.jsonl
 ```
 
-Import the resulting .jsonl file into the backend's database using the `flask import-feeds` command.
+Import the resulting .jsonl file into the backend's database using
+the `flask import-feeds` command.
 
-```
+```bash
 # on the backend/ directory
 uv run flask import-feeds rss.jsonl
 ```
 
-# If it's a list of valid rss feeds
+## If it's a list of valid rss feeds
 
 Format it to .jsonl before importing with `flask import-feeds`:
 
-```
+```bash
 # on the backend/ directory
 jq -R -n -c '[inputs] | map({rss_url: .}) | .[]' rss_urls.txt > rss.jsonl
 uv run flask import-feeds rss.jsonl
@@ -36,9 +39,10 @@ uv run flask import-feeds rss.jsonl
 
 ## Generating the website
 
-Always use the full list of imported feed_urls. Order randomly to reduce chances of hammering a small provider.
+Always use the full list of imported feed_urls. Order randomly to reduce chances
+of hammering a small provider.
 
-```
+```bash
 # on the backend/ directory
 sqlite3 brcrawl.sqlite3
 
@@ -48,9 +52,10 @@ SELECT feed_url FROM feeds WHERE status_id = 1 ORDER BY RANDOM();
 .quit
 ```
 
-Now use the generated feeds.txt file to run the `build.sh` command from the website directory.
+Now use the generated feeds.txt file to run the `build.sh` command from the
+website directory.
 
-```
+```bash
 # on the website/ directory
 
 ./build.sh feeds.txt
@@ -58,10 +63,10 @@ Now use the generated feeds.txt file to run the `build.sh` command from the webs
 
 The resulting .html files can be deployed (eg. via github pages or vps with nginx).
 
-# Recently approved feeds
+## Recently approved feeds
 
 Filter by status verified and apply a filter based on the date. Eg;
 
-```
+```sql
 SELECT feed_url FROM feeds WHERE status_id = 1 AND created_at > '2026-02-12 10:00:00';
 ```
