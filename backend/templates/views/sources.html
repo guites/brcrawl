@@ -2,13 +2,9 @@
 
 {% block title %}Fontes | BR Crawl{% endblock %}
 
-{% block header %}
-    <h1><a href="/sources">Fontes | BR Crawl</a></h1>
-    <br class="title-br"/>
-    <span class="title-span">Diretório da smallweb brasileira</span>
-{% endblock %}
-
 {% block content %}
+    <h1>Fontes</h1>
+    <p>Blogs indexados no projeto. Para adicionar (ou remover) algum blog, entre em contato comigo por <a href="mailto:hello@guilhermegarcia.dev">aqui</a>.</p>
     <h2>Ativos ({{ active_feeds|length }})</h2>
     <ol>
         {% for feed in active_feeds %}

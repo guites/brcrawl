@@ -2,13 +2,8 @@
 
 {% block title %}BR Crawl{% endblock %}
 
-{% block header %}
-    <h1><a href="/">BR Crawl</a></h1>
-    <br class="title-br"/>
-    <span class="title-span">Diretório da smallweb brasileira</span>
-{% endblock %}
-
 {% block content %}
+    <h1>Publicações recentes</h1>
     <ol start="{{ start_index }}">
         {% for item in feed_items %}
             <li>
