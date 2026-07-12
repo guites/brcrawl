@@ -75,9 +75,10 @@ def log(msg, level):
 class FeedProcessor:
     """Adapted from github.com/manualdousuario/lerama and git.sr.ht/~lown/openorb"""
 
-    def __init__(self):
+    def __init__(self, save_content=False):
         self.num_feeds = 25
         self.min_process_interval = 120
+        self.save_content = save_content
 
     def run(self):
         feeds = get_feeds_for_processing(self.num_feeds, self.min_process_interval)
@@ -135,12 +136,16 @@ class FeedProcessor:
             entry_date = get_entry_date(entry)
 
             entry_author = get_entry_author(entry)
-            entry_content = get_entry_content(entry)
 
-            if len(entry_content) != 0:
-                entry_content = clean_content(entry_content)
-            # TODO: if the entry content lenght is zero we could try
-            # TODO: to download it from the entry_url
+            if self.save_content:
+                entry_content = get_entry_content(entry)
+
+                if len(entry_content) != 0:
+                    entry_content = clean_content(entry_content)
+                # TODO: if the entry content lenght is zero we could try
+                # TODO: to download it from the entry_url
+            else:
+                entry_content = None
 
             if not entry_date or not entry_url:
                 log(
