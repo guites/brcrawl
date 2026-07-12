@@ -15,6 +15,7 @@ from db import (
     get_oldest_crawled_feed,
     update_feed_status,
     get_feeds,
+    refresh_latest_posts,
 )
 import enum
 import pyperclip
@@ -292,3 +293,9 @@ def register_cli(app):
         """Gets latest posts from feeds registered to the database"""
         processor = FeedProcessor()
         processor.run()
+
+    @app.cli.command("refresh-latest-posts")
+    def refresh_latest_posts_cache():
+        """Updates the materialized view table with the latest feed_item
+        from each registered feed"""
+        refresh_latest_posts()
