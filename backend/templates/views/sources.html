@@ -6,17 +6,17 @@
     <h1>Fontes</h1>
     <p>Blogs indexados no projeto. Para adicionar (ou remover) algum blog, entre em contato comigo por <a href="mailto:hello@guilhermegarcia.dev">aqui</a>.</p>
     <h2>Ativos ({{ active_feeds|length }})</h2>
-    <ol>
+    <ol class="feed-list">
         {% for feed in active_feeds %}
-            <li><a href="{{ feed.feed_url }}" target="_blank">{{ feed.feed_url }}</a></li>
+            <li><a href="{{ feed.feed_url }}" target="_blank" class="feed-url">{{ feed.feed_url }}</a></li>
         {% endfor %}
     </ol>
 
     {% if inactive_feeds %}
         <h2>Inativos ({{ inactive_feeds|length }})</h2>
-        <ol>
+        <ol class="feed-list">
             {% for feed in inactive_feeds %}
-                <li><a href="{{ feed.feed_url }}" target="_blank">{{ feed.feed_url }}</a></li>
+                <li><a href="{{ feed.feed_url }}" target="_blank" class="feed-url">{{ feed.feed_url }}</a></li>
             {% endfor %}
         </ol>
     {% endif %}

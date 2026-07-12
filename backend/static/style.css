@@ -125,6 +125,17 @@ button.report:hover, button.unreport, button.hide:hover, button.show {
 
 .title-br { display: none; }
 
+.feed-list {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.feed-url {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
 @media screen and (max-width: 470px) {
     header { text-align: center; }
     .title-br { display: initial; }
