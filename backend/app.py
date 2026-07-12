@@ -70,10 +70,15 @@ def index():
     total_pages = max(1, math.ceil(total_items / per_page))
     start_index = (page - 1) * per_page + 1
 
-    # Generate last updated timestamp
-    now = datetime.now(timezone.utc)
-    last_updated = now.isoformat()
-    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
+    # Get last refresh timestamp from first feed item (all have the same value)
+    if feed_items:
+        last_updated = feed_items[0]["last_refreshed"]
+        # Parse the datetime string and format it
+        dt = datetime.fromisoformat(last_updated)
+        last_updated_formatted = dt.strftime("%d/%m/%Y %H:%M:%S")
+    else:
+        last_updated = None
+        last_updated_formatted = None
 
     # Generate nonce for CSP
     nonce = secrets.token_hex(16)
@@ -96,11 +101,6 @@ def index():
 
 @app.route("/about", methods=["GET"])
 def about():
-    # Generate last updated timestamp
-    now = datetime.now(timezone.utc)
-    last_updated = now.isoformat()
-    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
-
     # Generate nonce for CSP
     nonce = secrets.token_hex(16)
 
@@ -109,8 +109,6 @@ def about():
 
     return render_template(
         "views/about.html",
-        last_updated=last_updated,
-        last_updated_formatted=last_updated_formatted,
         nonce=nonce,
         backend_url=backend_url,
     )
@@ -122,11 +120,6 @@ def sources():
     active_feeds = get_active_feeds_with_posts()
     inactive_feeds = get_inactive_feeds()
 
-    # Generate last updated timestamp
-    now = datetime.now(timezone.utc)
-    last_updated = now.isoformat()
-    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
-
     # Generate nonce for CSP
     nonce = secrets.token_hex(16)
 
@@ -137,8 +130,6 @@ def sources():
         "views/sources.html",
         active_feeds=active_feeds,
         inactive_feeds=inactive_feeds,
-        last_updated=last_updated,
-        last_updated_formatted=last_updated_formatted,
         nonce=nonce,
         backend_url=backend_url,
     )

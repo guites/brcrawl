@@ -43,4 +43,20 @@
             {% endif %}
         </nav>
     {% endif %}
+
+    {% if last_updated %}
+    <p>Atualizado em:
+        <time id="update-at" datetime="{{ last_updated }}">
+            {{ last_updated_formatted }}
+        </time>
+    </p>
+    <script nonce="{{ nonce }}">
+        const updatedAtElement = document.getElementById("update-at");
+        const date = new Date(updatedAtElement.dateTime);
+        updatedAtElement.innerText = date.toLocaleString(undefined, {
+            dateStyle: "full",
+            timeStyle: "medium",
+        });
+    </script>
+    {% endif %}
 {% endblock %}
