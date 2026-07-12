@@ -244,3 +244,18 @@ def get_latest_feed_items_count():
     return query_db("SELECT COUNT(*) as count FROM latest_feed_items", one=True)[
         "count"
     ]
+
+
+def get_active_feeds_with_posts():
+    return query_db(
+        """SELECT f.domain, f.feed_url
+           FROM feeds f
+           INNER JOIN latest_feed_items lfi ON f.id = lfi.feed_id
+           WHERE f.processing_status_id = 1"""
+    )
+
+
+def get_inactive_feeds():
+    return query_db(
+        "SELECT domain, feed_url FROM feeds WHERE processing_status_id = 2"
+    )

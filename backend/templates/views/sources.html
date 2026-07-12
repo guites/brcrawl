@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Fontes | BR Crawl{% endblock %}
+
+{% block header %}
+    <h1><a href="/sources">Fontes | BR Crawl</a></h1>
+    <br class="title-br"/>
+    <span class="title-span">Diretório da smallweb brasileira</span>
+{% endblock %}
+
+{% block content %}
+    <h2>Ativos ({{ active_feeds|length }})</h2>
+    <ol>
+        {% for feed in active_feeds %}
+            <li><a href="{{ feed.feed_url }}" target="_blank">{{ feed.feed_url }}</a></li>
+        {% endfor %}
+    </ol>
+
+    {% if inactive_feeds %}
+        <h2>Inativos ({{ inactive_feeds|length }})</h2>
+        <ol>
+            {% for feed in inactive_feeds %}
+                <li><a href="{{ feed.feed_url }}" target="_blank">{{ feed.feed_url }}</a></li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+{% endblock %}

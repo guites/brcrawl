@@ -14,6 +14,8 @@ from db import (
     insert_report,
     get_latest_feed_items,
     get_latest_feed_items_count,
+    get_active_feeds_with_posts,
+    get_inactive_feeds,
 )
 
 
@@ -107,6 +109,34 @@ def about():
 
     return render_template(
         "views/about.html",
+        last_updated=last_updated,
+        last_updated_formatted=last_updated_formatted,
+        nonce=nonce,
+        backend_url=backend_url,
+    )
+
+
+@app.route("/sources", methods=["GET"])
+def sources():
+    # Get active feeds (only those with posts) and inactive feeds
+    active_feeds = get_active_feeds_with_posts()
+    inactive_feeds = get_inactive_feeds()
+
+    # Generate last updated timestamp
+    now = datetime.now(timezone.utc)
+    last_updated = now.isoformat()
+    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
+    return render_template(
+        "views/sources.html",
+        active_feeds=active_feeds,
+        inactive_feeds=inactive_feeds,
         last_updated=last_updated,
         last_updated_formatted=last_updated_formatted,
         nonce=nonce,
