@@ -1,10 +1,19 @@
 import os
-from flask import Flask, request, g
+import math
+from datetime import datetime, timezone
+from flask import Flask, render_template, request, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 from functions import salt_and_hash
 from cli import register_cli
-from db import get_feed_by_domain, get_report, delete_report, insert_report
+from db import (
+    get_feed_by_domain,
+    get_report,
+    delete_report,
+    insert_report,
+    get_latest_feed_items,
+    get_latest_feed_items_count,
+)
 
 
 load_dotenv()
@@ -43,3 +52,32 @@ def report():
 
     insert_report(feed["id"], hash_id)
     return {"message": "Report registered"}, 201
+
+
+@app.route("/", methods=["GET"])
+def index():
+    per_page = 50
+    page = request.args.get("page", 1, type=int)
+
+    if page < 1:
+        page = 1
+
+    feed_items = get_latest_feed_items(per_page=per_page, page=page)
+    total_items = get_latest_feed_items_count()
+    total_pages = max(1, math.ceil(total_items / per_page))
+    start_index = (page - 1) * per_page + 1
+
+    # Generate last updated timestamp
+    now = datetime.now(timezone.utc)
+    last_updated = now.isoformat()
+    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    return render_template(
+        "views/index.html",
+        feed_items=feed_items,
+        current_page=page,
+        total_pages=total_pages,
+        start_index=start_index,
+        last_updated=last_updated,
+        last_updated_formatted=last_updated_formatted,
+    )
