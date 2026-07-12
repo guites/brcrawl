@@ -1,5 +1,6 @@
 import os
 import math
+import secrets
 from datetime import datetime, timezone
 from flask import Flask, render_template, request, g
 from flask_cors import CORS
@@ -72,6 +73,12 @@ def index():
     last_updated = now.isoformat()
     last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
 
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
     return render_template(
         "views/index.html",
         feed_items=feed_items,
@@ -80,4 +87,6 @@ def index():
         start_index=start_index,
         last_updated=last_updated,
         last_updated_formatted=last_updated_formatted,
+        nonce=nonce,
+        backend_url=backend_url,
     )

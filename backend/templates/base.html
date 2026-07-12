@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{% endblock %}</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        connect-src {{ backend_url }};
+        base-uri 'self';
+        img-src 'self' data: ;
+        style-src 'self' 'nonce-{{ nonce }}' ;
+        script-src 'self' 'nonce-{{ nonce }}' 'strict-dynamic' ;
+    ">
     <meta name="application-name" content="brcrawl">
     <meta name="description" content="Diretório da smallweb brasileira">
     <meta name="referrer" content="same-origin">
@@ -24,8 +32,8 @@
         </p>
         <p><a href="/">BR Crawl</a> | <a href="/about">Sobre</a> | <a href="/sources">Fontes</a></p>
     </footer>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
+    <script src="{{ url_for('static', filename='script.js') }}" nonce="{{ nonce }}"></script>
+    <script nonce="{{ nonce }}">
         const updatedAtElement = document.getElementById("update-at");
         const date = new Date(updatedAtElement.dateTime);
         updatedAtElement.innerText = date.toLocaleString(undefined, {
