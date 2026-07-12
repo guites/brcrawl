@@ -90,3 +90,25 @@ def index():
         nonce=nonce,
         backend_url=backend_url,
     )
+
+
+@app.route("/about", methods=["GET"])
+def about():
+    # Generate last updated timestamp
+    now = datetime.now(timezone.utc)
+    last_updated = now.isoformat()
+    last_updated_formatted = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
+    return render_template(
+        "views/about.html",
+        last_updated=last_updated,
+        last_updated_formatted=last_updated_formatted,
+        nonce=nonce,
+        backend_url=backend_url,
+    )
