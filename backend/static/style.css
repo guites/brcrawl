@@ -33,6 +33,10 @@ header {
     margin-bottom: 0.25em;
 }
 
+main {
+    padding: 0 0.25rem;
+}
+
 .header-title {
     font-size: 2em;
     font-weight: bold;
@@ -49,6 +53,8 @@ header > h1 {
 h2 {
     font-size: 1rem;
     display: inline;
+    overflow-wrap: break-word;
+    max-width: 100%;
 }
 
 ol {
@@ -57,6 +63,9 @@ ol {
 
 li {
     margin-block-start: 1em;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    max-width: 100%;
 }
 
 a {
@@ -134,6 +143,10 @@ button.report:hover, button.unreport, button.hide:hover, button.show {
     word-break: break-all;
     overflow-wrap: break-word;
     max-width: 100%;
+}
+
+.last-updated {
+    text-align: center;
 }
 
 @media screen and (max-width: 470px) {
