@@ -4,6 +4,10 @@ FROM python:3.10-slim
 # ---- Install uv ----
 RUN pip install --no-cache-dir uv
 
+RUN apt-get update
+# ---- Install curl for debugging ----
+RUN apt-get -y install curl
+
 # ---- Build args
 ARG UID=1000
 ARG GID=1000
