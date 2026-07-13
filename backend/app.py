@@ -73,8 +73,12 @@ def index():
     # Get last refresh timestamp from first feed item (all have the same value)
     if feed_items:
         last_updated = feed_items[0]["last_refreshed"]
-        # Parse the datetime string and format it
+        # Parse the datetime string and ensure it's treated as UTC
         dt = datetime.fromisoformat(last_updated)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        # Format as ISO string with timezone info for JavaScript
+        last_updated = dt.isoformat()
         last_updated_formatted = dt.strftime("%d/%m/%Y %H:%M:%S")
     else:
         last_updated = None
