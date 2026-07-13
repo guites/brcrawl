@@ -202,3 +202,60 @@ def pause_feed_processing(feed_id):
     con = get_db()
     con.execute("UPDATE feeds SET processing_status_id = 2 WHERE id = ?", [feed_id])
     con.commit()
+
+
+def refresh_latest_posts():
+    con = get_db()
+    con.execute("DELETE FROM latest_feed_items")
+    con.execute("""
+INSERT INTO latest_feed_items (feed_id, feed_item_id, title, url, published_at, feed_domain, feed_url, last_refreshed)
+SELECT
+    f.id AS feed_id,
+    fi.id AS feed_item_id,
+    fi.title,
+    fi.url,
+    fi.published_at,
+    f.domain AS feed_domain,
+    f.feed_url,
+    CURRENT_TIMESTAMP
+FROM feeds f
+INNER JOIN (
+    SELECT
+        fi.*,
+        ROW_NUMBER() OVER (PARTITION BY fi.feed_id ORDER BY fi.published_at DESC) as rn
+    FROM feed_items fi
+) fi ON f.id = fi.feed_id AND fi.rn = 1
+WHERE fi.id IS NOT NULL AND fi.published_at <= DATETIME('now')
+ORDER BY fi.published_at DESC;
+""")
+    con.commit()
+
+
+def get_latest_feed_items(per_page=10, page=1):
+    if page <= 1:
+        page = 1
+    return query_db(
+        "SELECT * FROM latest_feed_items ORDER BY published_at DESC LIMIT ? OFFSET ?;",
+        [per_page, (page - 1) * per_page],
+    )
+
+
+def get_latest_feed_items_count():
+    return query_db("SELECT COUNT(*) as count FROM latest_feed_items", one=True)[
+        "count"
+    ]
+
+
+def get_active_feeds_with_posts():
+    return query_db(
+        """SELECT f.domain, f.feed_url
+           FROM feeds f
+           INNER JOIN latest_feed_items lfi ON f.id = lfi.feed_id
+           WHERE f.processing_status_id = 1"""
+    )
+
+
+def get_inactive_feeds():
+    return query_db(
+        "SELECT domain, feed_url FROM feeds WHERE processing_status_id = 2"
+    )

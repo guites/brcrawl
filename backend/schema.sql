@@ -90,6 +90,29 @@ CREATE TABLE IF NOT EXISTS feed_items (
 ALTER TABLE feeds ADD COLUMN last_feed_item_id INTEGER;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_last_feed_item_id ON feeds(last_feed_item_id);
 
+-- indexes each feed_items based on feed_id ordered by
+-- publication date
+CREATE INDEX IF NOT EXISTS idx_feed_items_feed_published
+ON feed_items(feed_id, published_at DESC);
+
+-- Create a table to store the pre-computed results
+CREATE TABLE IF NOT EXISTS latest_feed_items (
+    feed_id INTEGER PRIMARY KEY,
+    feed_item_id INTEGER NOT NULL,
+    title VARCHAR NOT NULL,
+    url VARCHAR NOT NULL,
+    published_at DATETIME NOT NULL,
+    feed_domain TEXT NOT NULL,
+    feed_url TEXT NOT NULL,
+    last_refreshed DATETIME NOT NULL
+);
+
+-- Create indexes for pagination queries
+CREATE INDEX IF NOT EXISTS idx_latest_feed_items_published
+ON latest_feed_items(published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_latest_feed_items_feed_id
+ON latest_feed_items(feed_id);
+
 -- feed_processing_status table
 CREATE TABLE IF NOT EXISTS feed_processing_status (
     id INTEGER PRIMARY KEY,

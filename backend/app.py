@@ -1,10 +1,22 @@
 import os
-from flask import Flask, request, g
+import math
+import secrets
+from datetime import datetime, timezone
+from flask import Flask, render_template, request, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 from functions import salt_and_hash
 from cli import register_cli
-from db import get_feed_by_domain, get_report, delete_report, insert_report
+from db import (
+    get_feed_by_domain,
+    get_report,
+    delete_report,
+    insert_report,
+    get_latest_feed_items,
+    get_latest_feed_items_count,
+    get_active_feeds_with_posts,
+    get_inactive_feeds,
+)
 
 
 load_dotenv()
@@ -43,3 +55,81 @@ def report():
 
     insert_report(feed["id"], hash_id)
     return {"message": "Report registered"}, 201
+
+
+@app.route("/", methods=["GET"])
+def index():
+    per_page = 50
+    page = request.args.get("page", 1, type=int)
+
+    if page < 1:
+        page = 1
+
+    feed_items = get_latest_feed_items(per_page=per_page, page=page)
+    total_items = get_latest_feed_items_count()
+    total_pages = max(1, math.ceil(total_items / per_page))
+    start_index = (page - 1) * per_page + 1
+
+    # Get last refresh timestamp from first feed item (all have the same value)
+    if feed_items:
+        last_updated = feed_items[0]["last_refreshed"]
+        # Parse the datetime string and format it
+        dt = datetime.fromisoformat(last_updated)
+        last_updated_formatted = dt.strftime("%d/%m/%Y %H:%M:%S")
+    else:
+        last_updated = None
+        last_updated_formatted = None
+
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
+    return render_template(
+        "views/index.html",
+        feed_items=feed_items,
+        current_page=page,
+        total_pages=total_pages,
+        start_index=start_index,
+        last_updated=last_updated,
+        last_updated_formatted=last_updated_formatted,
+        nonce=nonce,
+        backend_url=backend_url,
+    )
+
+
+@app.route("/about", methods=["GET"])
+def about():
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
+    return render_template(
+        "views/about.html",
+        nonce=nonce,
+        backend_url=backend_url,
+    )
+
+
+@app.route("/sources", methods=["GET"])
+def sources():
+    # Get active feeds (only those with posts) and inactive feeds
+    active_feeds = get_active_feeds_with_posts()
+    inactive_feeds = get_inactive_feeds()
+
+    # Generate nonce for CSP
+    nonce = secrets.token_hex(16)
+
+    # Get backend URL for CSP
+    backend_url = os.environ.get("BACKEND_URL", request.host_url)
+
+    return render_template(
+        "views/sources.html",
+        active_feeds=active_feeds,
+        inactive_feeds=inactive_feeds,
+        nonce=nonce,
+        backend_url=backend_url,
+    )
