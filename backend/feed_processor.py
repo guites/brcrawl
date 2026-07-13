@@ -69,7 +69,7 @@ def clean_content(html_content):
 
 def log(msg, level):
     dt = datetime.now().isoformat()[:-7]
-    print(f"[{level}] [{dt}] {msg}")
+    print(f"[{level}] [{dt}] {msg}", flush=True)
 
 
 class FeedProcessor:
@@ -81,7 +81,9 @@ class FeedProcessor:
         self.save_content = save_content
 
     def run(self):
+        log("Starting feed processing", "INFO")
         feeds = get_feeds_for_processing(self.num_feeds, self.min_process_interval)
+        log("Database query completed", "INFO")
 
         total_feeds = len(feeds)
         if total_feeds == 0:
