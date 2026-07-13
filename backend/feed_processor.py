@@ -9,6 +9,7 @@ from db import (
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 
 def status_nok(feed):
@@ -72,6 +73,16 @@ def log(msg, level):
     print(f"[{level}] [{dt}] {msg}", flush=True)
 
 
+def parse_with_timeout(feed_url, timeout=30):
+    """Parse feed with timeout to prevent hanging on slow/unresponsive feeds"""
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(feedparser.parse, feed_url)
+        try:
+            return future.result(timeout=timeout)
+        except FutureTimeoutError:
+            return None
+
+
 class FeedProcessor:
     """Adapted from github.com/manualdousuario/lerama and git.sr.ht/~lown/openorb"""
 
@@ -102,7 +113,11 @@ class FeedProcessor:
         )
         mark_feed_checked(feed["id"])
         try:
-            parsed = feedparser.parse(feed["feed_url"])
+            parsed = parse_with_timeout(feed["feed_url"], timeout=30)
+            if parsed is None:
+                log(f"Feed parsing timed out after 30 seconds", "ERROR")
+                pause_feed_processing(feed["id"])
+                return
         except Exception as e:
             log(f"Unhandled feedparser exception: {e}", "ERROR")
             return
