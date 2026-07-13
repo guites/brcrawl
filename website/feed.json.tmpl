@@ -1,0 +1,11 @@
+[
+{{- range $i, $item := .Items}}
+{{- if $i}},{{end}}
+  {
+    "link": "{{$item.Link}}",
+    "title": "{{$item.Title}}",
+    "publication": "{{publication $item}}",
+    "domain": "{{domain $item}}"
+  }
+{{- end}}
+]

@@ -9,7 +9,6 @@ from db import (
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 
 def status_nok(feed):
@@ -70,31 +69,18 @@ def clean_content(html_content):
 
 def log(msg, level):
     dt = datetime.now().isoformat()[:-7]
-    print(f"[{level}] [{dt}] {msg}", flush=True)
-
-
-def parse_with_timeout(feed_url, timeout=30):
-    """Parse feed with timeout to prevent hanging on slow/unresponsive feeds"""
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(feedparser.parse, feed_url)
-        try:
-            return future.result(timeout=timeout)
-        except FutureTimeoutError:
-            return None
+    print(f"[{level}] [{dt}] {msg}")
 
 
 class FeedProcessor:
     """Adapted from github.com/manualdousuario/lerama and git.sr.ht/~lown/openorb"""
 
-    def __init__(self, save_content=False):
+    def __init__(self):
         self.num_feeds = 25
         self.min_process_interval = 120
-        self.save_content = save_content
 
     def run(self):
-        log("Starting feed processing", "INFO")
         feeds = get_feeds_for_processing(self.num_feeds, self.min_process_interval)
-        log("Database query completed", "INFO")
 
         total_feeds = len(feeds)
         if total_feeds == 0:
@@ -113,11 +99,7 @@ class FeedProcessor:
         )
         mark_feed_checked(feed["id"])
         try:
-            parsed = parse_with_timeout(feed["feed_url"], timeout=30)
-            if parsed is None:
-                log(f"Feed parsing timed out after 30 seconds", "ERROR")
-                pause_feed_processing(feed["id"])
-                return
+            parsed = feedparser.parse(feed["feed_url"])
         except Exception as e:
             log(f"Unhandled feedparser exception: {e}", "ERROR")
             return
@@ -153,16 +135,12 @@ class FeedProcessor:
             entry_date = get_entry_date(entry)
 
             entry_author = get_entry_author(entry)
+            entry_content = get_entry_content(entry)
 
-            if self.save_content:
-                entry_content = get_entry_content(entry)
-
-                if len(entry_content) != 0:
-                    entry_content = clean_content(entry_content)
-                # TODO: if the entry content lenght is zero we could try
-                # TODO: to download it from the entry_url
-            else:
-                entry_content = None
+            if len(entry_content) != 0:
+                entry_content = clean_content(entry_content)
+            # TODO: if the entry content lenght is zero we could try
+            # TODO: to download it from the entry_url
 
             if not entry_date or not entry_url:
                 log(
@@ -174,7 +152,6 @@ class FeedProcessor:
             # if we find the latest registered guid, it means
             # from here on entries were already processed
             if feed["last_post_guid"] == entry_guid:
-                log("Feed already up to date - no new entries", "INFO")
                 break
 
             if latest_guid is None:
