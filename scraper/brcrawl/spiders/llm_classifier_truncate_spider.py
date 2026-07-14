@@ -16,19 +16,21 @@ load_dotenv()
 
 logging.getLogger('protego._protego').setLevel(logging.INFO)
 
-DEEPSEEK_API_KEY = os.environ['DEEPSEEK_API_KEY']
-
 class Website(BaseModel):
     personal_blog: bool
 
 class LLMClassifierTruncateSpider(scrapy.Spider):
     name = "llm_classifier_truncate"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.api_key = os.environ['DEEPSEEK_API_KEY']
+
     async def start(self):
         self.urls_file = getattr(self, "urls_file", None)
         if self.urls_file is None:
             raise CloseSpider("Missing urls_file argument")
-        self.llm = DeepSeek(model='deepseek-chat', api_key=DEEPSEEK_API_KEY)
+        self.llm = DeepSeek(model='deepseek-chat', api_key=self.api_key)
         self.truncate_text = getattr(self, 'truncate_text', None)
         if self.truncate_text is not None:
             self.truncate_text = int(self.truncate_text)
